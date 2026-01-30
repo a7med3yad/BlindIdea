@@ -7,7 +7,7 @@ using System.Text;
 
 namespace BlindIdea.Infrastructure.Implementation
 {
-    public class UnitOfWork : IUnitOfWork
+  public class UnitOfWork : IUnitOfWork
     {
         private readonly AppDbContext _context;
 
