@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Microsoft.AspNetCore.Identity;
 
 namespace BlindIdea.Core.Entities
 {
-    public class User
+    public class User : IdentityUser
     {
         public int Id { get; set; }
         public string Name { get; set; }
