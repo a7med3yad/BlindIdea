@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="BlindIdea.API/BlindIdea.API.csproj" />
+  <Project Path="BlindIdea.Application/BlindIdea.Application.csproj" />
+  <Project Path="BlindIdea.Core/BlindIdea.Core.csproj" />
+  <Project Path="BlindIdea.Infrastructure/BlindIdea.Infrastructure.csproj" />
+</Solution>
