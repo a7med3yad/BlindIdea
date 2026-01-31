@@ -8,7 +8,6 @@ namespace BlindIdea.Core.Interfaces
         IRepository<Team> Teams { get; }
         IRepository<Idea> Ideas { get; }
         IRepository<Rating> Ratings { get; }
-
         Task<int> CommitAsync();
     }
 }
