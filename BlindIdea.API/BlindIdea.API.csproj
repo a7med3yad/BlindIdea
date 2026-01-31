@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -23,12 +23,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
+    <ProjectReference Include="..\BlindIdea.Core\BlindIdea.Core.csproj" />
+    <ProjectReference Include="..\BlindIdea.Infrastructure\BlindIdea.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BlindIdea.Core\BlindIdea.Core.csproj" />
-    <ProjectReference Include="..\BlindIdea.Infrastructure\BlindIdea.Infrastructure.csproj" />
+    <Folder Include="Controllers\" />
   </ItemGroup>
 
 </Project>

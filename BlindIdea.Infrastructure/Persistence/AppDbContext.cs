@@ -20,9 +20,10 @@ namespace BlindIdea.Infrastructure.Data
             base.OnModelCreating(modelBuilder);
 
             // ===================== User =====================
+            modelBuilder.HasDefaultSchema("identity");
             modelBuilder.Entity<User>(entity =>
             {
-                entity.HasKey(u => u.Id);
+
 
                 entity.Property(u => u.Name)
                       .IsRequired()
