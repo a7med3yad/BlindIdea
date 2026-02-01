@@ -8,9 +8,9 @@ namespace BlindIdea.Core.Entities
     public class User : IdentityUser
     {
         public string Name { get; set; }
-        public int TeamId { get; set; }
+        public int? TeamId { get; set; }
         public bool IsDeleted { get; set; }
-        public virtual Team Team { get; set; }
+        public virtual Team? Team { get; set; }
     }
 
 }

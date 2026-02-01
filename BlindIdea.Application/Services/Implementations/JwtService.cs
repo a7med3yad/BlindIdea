@@ -1,9 +1,8 @@
-﻿using BlindIdea.Application.Services.Interfaces;
+﻿using BlindIdea.Application.Common.Options;
+using BlindIdea.Application.Services.Interfaces;
 using BlindIdea.Core.Entities;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -12,41 +11,51 @@ namespace BlindIdea.Application.Services.Implementations
 {
     public class JwtService : IJwtService
     {
-        private readonly IConfiguration _config;
+        private readonly JwtOptions _jwtOptions;
 
-        public JwtService(IConfiguration config)
+        public JwtService(IOptions<JwtOptions> jwtOptions)
         {
-            _config = config;
+            _jwtOptions = jwtOptions.Value;
         }
 
-        public string CreateAcessToken(User user)
+        public string CreateAccessToken(User user)
         {
-            var claims = new List<Claim> {
-                new Claim(ClaimTypes.Name, user.Email)
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim(ClaimTypes.Email, user.Email!),
+                new Claim(ClaimTypes.Name, user.Name)
             };
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config.GetValue<string>("JWT:AccessToken")!));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
-            var tokenDescription = new JwtSecurityToken(
-                issuer: _config.GetValue<string>("JWT:Issuer"),
-                audience: _config.GetValue<string>("JWT:Audience"),
+            var key = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(_jwtOptions.Key));
+
+            var creds = new SigningCredentials(
+                key, SecurityAlgorithms.HmacSha512);
+
+            var token = new JwtSecurityToken(
+                issuer: _jwtOptions.Issuer,
+                audience: _jwtOptions.Audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddDays(1),
+                expires: DateTime.UtcNow.AddDays(_jwtOptions.ExpireDays),
                 signingCredentials: creds
             );
-            return new JwtSecurityTokenHandler().WriteToken(tokenDescription);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-      
 
         public string GenerateRefreshToken()
         {
-            throw new NotImplementedException();
+            return Convert.ToBase64String(Guid.NewGuid().ToByteArray());
         }
 
-        public string HashToken()
+        public string HashToken(string token)
         {
-            throw new NotImplementedException();
+            using var sha256 = System.Security.Cryptography.SHA256.Create();
+            var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(token));
+            return Convert.ToBase64String(bytes);
         }
+
     }
 }
