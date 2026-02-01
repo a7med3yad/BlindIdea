@@ -7,9 +7,8 @@ namespace BlindIdea.Application.Services.Interfaces
 {
     public interface IJwtService
     {
-        string CreateAcessToken(User user);
-
+        string CreateAccessToken(User user);
         string GenerateRefreshToken();
-        string HashToken();
+        string HashToken(string token);
     }
 }

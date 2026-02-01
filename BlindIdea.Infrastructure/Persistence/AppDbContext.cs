@@ -37,7 +37,7 @@ namespace BlindIdea.Infrastructure.Data
                       .IsUnique();
 
                 entity.Property(u => u.TeamId)
-                      .IsRequired();
+                      .IsRequired(false);
 
                 entity.Property(u => u.IsDeleted)
                       .HasDefaultValue(false);
