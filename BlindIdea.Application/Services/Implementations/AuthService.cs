@@ -1,9 +1,10 @@
-﻿using BlindIdea.Application.Common.Options;
+﻿using BlindIdea.Infrastructure.Common.Options;
 using BlindIdea.Application.Dtos;
-using BlindIdea.Application.Services.Interfaces;
 using BlindIdea.Core.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
+using BlindIdea.Application.Services.Interfaces;
+using BlindIdea.Core.Interfaces;
 
 namespace BlindIdea.Application.Services.Implementations
 {

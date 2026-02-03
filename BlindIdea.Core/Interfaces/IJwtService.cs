@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace BlindIdea.Application.Services.Interfaces
+namespace BlindIdea.Core.Interfaces
 {
     public interface IJwtService
     {

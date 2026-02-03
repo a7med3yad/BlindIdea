@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace BlindIdea.Application.Common.Options
+namespace BlindIdea.Infrastructure.Common.Options
 {
     public class JwtOptions
     {
