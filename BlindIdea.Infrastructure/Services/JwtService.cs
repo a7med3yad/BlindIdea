@@ -1,13 +1,13 @@
-﻿using BlindIdea.Application.Common.Options;
-using BlindIdea.Application.Services.Interfaces;
-using BlindIdea.Core.Entities;
+﻿using BlindIdea.Core.Entities;
+using BlindIdea.Core.Interfaces;
+using BlindIdea.Infrastructure.Common.Options;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace BlindIdea.Application.Services.Implementations
+namespace BlindIdea.Infrastructure.Services
 {
     public class JwtService : IJwtService
     {
@@ -52,10 +52,7 @@ namespace BlindIdea.Application.Services.Implementations
 
         public string HashToken(string token)
         {
-            using var sha256 = System.Security.Cryptography.SHA256.Create();
-            var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(token));
-            return Convert.ToBase64String(bytes);
+            throw new NotImplementedException();
         }
-
     }
 }

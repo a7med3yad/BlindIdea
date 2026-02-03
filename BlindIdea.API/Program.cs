@@ -25,6 +25,8 @@ namespace BlindIdea.API
             builder.Services.Configure<JwtOptions>(
                 configuration.GetSection("Jwt") // ✅ fixed section name
             );
+            builder.Services.Configure<EmailOptions>(
+                configuration.GetSection("Email"));
 
             builder.Services.AddIdentity<User, IdentityRole>()
                 .AddEntityFrameworkStores<AppDbContext>()
