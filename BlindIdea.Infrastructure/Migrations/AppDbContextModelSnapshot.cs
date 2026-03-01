@@ -17,7 +17,7 @@ namespace BlindIdea.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasDefaultSchema("identity")
+                .HasDefaultSchema("dbo")
                 .HasAnnotation("ProductVersion", "10.0.2")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
@@ -25,59 +25,54 @@ namespace BlindIdea.Infrastructure.Migrations
 
             modelBuilder.Entity("BlindIdea.Core.Entities.Idea", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
+                    b.Property<bool>("IsAnonymous")
+                        .HasColumnType("bit");
 
-                    b.Property<int>("TeamId")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("TeamId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("TeamId");
 
-                    b.ToTable("Ideas", "identity");
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Ideas", "dbo");
                 });
 
             modelBuilder.Entity("BlindIdea.Core.Entities.Rating", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("uniqueidentifier");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("IdeaId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<int>("Score")
-                        .HasColumnType("int");
+                    b.Property<Guid>("IdeaId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("Value")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -86,24 +81,21 @@ namespace BlindIdea.Infrastructure.Migrations
                     b.HasIndex("UserId", "IdeaId")
                         .IsUnique();
 
-                    b.ToTable("Ratings", "identity", t =>
+                    b.ToTable("Ratings", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_Ratings_Score", "[Score] BETWEEN 1 AND 5");
+                            t.HasCheckConstraint("CK_Rating_Value", "Value >= 1 AND Value <= 5");
                         });
                 });
 
             modelBuilder.Entity("BlindIdea.Core.Entities.Team", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("uniqueidentifier");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
+                    b.Property<string>("AdminId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -112,10 +104,12 @@ namespace BlindIdea.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AdminId");
+
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Teams", "identity");
+                    b.ToTable("Teams", "dbo");
                 });
 
             modelBuilder.Entity("BlindIdea.Core.Entities.User", b =>
@@ -131,9 +125,8 @@ namespace BlindIdea.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
 
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
@@ -174,8 +167,8 @@ namespace BlindIdea.Infrastructure.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("TeamId")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("TeamId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
@@ -185,9 +178,6 @@ namespace BlindIdea.Infrastructure.Migrations
                         .HasColumnType("nvarchar(256)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Email")
-                        .IsUnique();
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
@@ -199,7 +189,7 @@ namespace BlindIdea.Infrastructure.Migrations
 
                     b.HasIndex("TeamId");
 
-                    b.ToTable("AspNetUsers", "identity");
+                    b.ToTable("AspNetUsers", "dbo");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -226,7 +216,7 @@ namespace BlindIdea.Infrastructure.Migrations
                         .HasDatabaseName("RoleNameIndex")
                         .HasFilter("[NormalizedName] IS NOT NULL");
 
-                    b.ToTable("AspNetRoles", "identity");
+                    b.ToTable("AspNetRoles", "dbo");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -251,7 +241,7 @@ namespace BlindIdea.Infrastructure.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AspNetRoleClaims", "identity");
+                    b.ToTable("AspNetRoleClaims", "dbo");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
@@ -276,7 +266,7 @@ namespace BlindIdea.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserClaims", "identity");
+                    b.ToTable("AspNetUserClaims", "dbo");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
@@ -298,7 +288,7 @@ namespace BlindIdea.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserLogins", "identity");
+                    b.ToTable("AspNetUserLogins", "dbo");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
@@ -313,7 +303,7 @@ namespace BlindIdea.Infrastructure.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AspNetUserRoles", "identity");
+                    b.ToTable("AspNetUserRoles", "dbo");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
@@ -332,7 +322,7 @@ namespace BlindIdea.Infrastructure.Migrations
 
                     b.HasKey("UserId", "LoginProvider", "Name");
 
-                    b.ToTable("AspNetUserTokens", "identity");
+                    b.ToTable("AspNetUserTokens", "dbo");
                 });
 
             modelBuilder.Entity("BlindIdea.Core.Entities.Idea", b =>
@@ -340,10 +330,17 @@ namespace BlindIdea.Infrastructure.Migrations
                     b.HasOne("BlindIdea.Core.Entities.Team", "Team")
                         .WithMany("Ideas")
                         .HasForeignKey("TeamId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("BlindIdea.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Team");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("BlindIdea.Core.Entities.Rating", b =>
@@ -363,6 +360,17 @@ namespace BlindIdea.Infrastructure.Migrations
                     b.Navigation("Idea");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("BlindIdea.Core.Entities.Team", b =>
+                {
+                    b.HasOne("BlindIdea.Core.Entities.User", "Admin")
+                        .WithMany()
+                        .HasForeignKey("AdminId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Admin");
                 });
 
             modelBuilder.Entity("BlindIdea.Core.Entities.User", b =>

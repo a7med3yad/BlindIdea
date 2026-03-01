@@ -1,6 +1,7 @@
 ﻿using BlindIdea.Core.Entities;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+
 namespace BlindIdea.Infrastructure.Data
 {
     public class AppDbContext : IdentityDbContext<User>
@@ -10,34 +11,32 @@ namespace BlindIdea.Infrastructure.Data
         {
         }
 
-        public DbSet<User> Users { get; set; }
-        public DbSet<Team> Teams { get; set; }
-        public DbSet<Idea> Ideas { get; set; }
-        public DbSet<Rating> Ratings { get; set; }
+        public DbSet<Team> Teams => Set<Team>();
+        public DbSet<Idea> Ideas => Set<Idea>();
+        public DbSet<Rating> Ratings => Set<Rating>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // ===================== User =====================
-            modelBuilder.HasDefaultSchema("identity");
+            modelBuilder.HasDefaultSchema("dbo");
+
+            ConfigureUser(modelBuilder);
+            ConfigureTeam(modelBuilder);
+            ConfigureIdea(modelBuilder);
+            ConfigureRating(modelBuilder);
+        }
+
+        private static void ConfigureUser(ModelBuilder modelBuilder)
+        {
             modelBuilder.Entity<User>(entity =>
             {
-
-
                 entity.Property(u => u.Name)
                       .IsRequired()
                       .HasMaxLength(100);
 
-                entity.Property(u => u.Email)
-                      .IsRequired()
-                      .HasMaxLength(150);
-
-                entity.HasIndex(u => u.Email)
-                      .IsUnique();
-
                 entity.Property(u => u.TeamId)
-                      .IsRequired(false);
+                      .IsRequired(false); // Guid?
 
                 entity.Property(u => u.IsDeleted)
                       .HasDefaultValue(false);
@@ -47,11 +46,12 @@ namespace BlindIdea.Infrastructure.Data
                       .HasForeignKey(u => u.TeamId)
                       .OnDelete(DeleteBehavior.Restrict);
 
-                // Global filter to ignore deleted users
                 entity.HasQueryFilter(u => !u.IsDeleted);
             });
+        }
 
-            // ===================== Team =====================
+        private static void ConfigureTeam(ModelBuilder modelBuilder)
+        {
             modelBuilder.Entity<Team>(entity =>
             {
                 entity.HasKey(t => t.Id);
@@ -63,14 +63,25 @@ namespace BlindIdea.Infrastructure.Data
                 entity.HasIndex(t => t.Name)
                       .IsUnique();
 
-                entity.Property(t => t.IsDeleted)
-                      .HasDefaultValue(false);
+                // Admin relationship
+                entity.Property(t => t.AdminId)
+                      .IsRequired();
 
-                // Global filter to ignore deleted teams
-                entity.HasQueryFilter(t => !t.IsDeleted);
+                entity.HasOne(t => t.Admin)
+                      .WithMany()
+                      .HasForeignKey(t => t.AdminId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.Navigation(t => t.Members)
+                      .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+                entity.Navigation(t => t.Ideas)
+                      .UsePropertyAccessMode(PropertyAccessMode.Field);
             });
+        }
 
-            // ===================== Idea =====================
+        private static void ConfigureIdea(ModelBuilder modelBuilder)
+        {
             modelBuilder.Entity<Idea>(entity =>
             {
                 entity.HasKey(i => i.Id);
@@ -83,32 +94,39 @@ namespace BlindIdea.Infrastructure.Data
                       .IsRequired()
                       .HasMaxLength(2000);
 
-                entity.Property(i => i.TeamId)
+                entity.Property(i => i.IsAnonymous)
                       .IsRequired();
 
-                entity.Property(i => i.IsDeleted)
-                      .HasDefaultValue(false);
+                entity.Property(i => i.UserId)
+                      .IsRequired();
+
+                entity.HasOne(i => i.User)
+                      .WithMany()
+                      .HasForeignKey(i => i.UserId)
+                      .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(i => i.Team)
                       .WithMany(t => t.Ideas)
                       .HasForeignKey(i => i.TeamId)
-                      .OnDelete(DeleteBehavior.Cascade);
+                      .OnDelete(DeleteBehavior.Restrict);
 
-                // Global filter to ignore deleted ideas
-                entity.HasQueryFilter(i => !i.IsDeleted);
+                entity.Navigation(i => i.Ratings)
+                      .UsePropertyAccessMode(PropertyAccessMode.Field);
             });
+        }
 
-            // ===================== Rating =====================
+        private static void ConfigureRating(ModelBuilder modelBuilder)
+        {
             modelBuilder.Entity<Rating>(entity =>
             {
                 entity.HasKey(r => r.Id);
 
-                entity.Property(r => r.Score)
+                entity.Property(r => r.Value)
                       .IsRequired();
 
                 entity.HasCheckConstraint(
-                    "CK_Ratings_Score",
-                    "[Score] BETWEEN 1 AND 5"
+                    "CK_Rating_Value",
+                    "Value >= 1 AND Value <= 5"
                 );
 
                 entity.Property(r => r.UserId)
@@ -116,9 +134,6 @@ namespace BlindIdea.Infrastructure.Data
 
                 entity.Property(r => r.IdeaId)
                       .IsRequired();
-
-                entity.Property(r => r.IsDeleted)
-                      .HasDefaultValue(false);
 
                 entity.HasOne(r => r.User)
                       .WithMany()
@@ -132,9 +147,6 @@ namespace BlindIdea.Infrastructure.Data
 
                 entity.HasIndex(r => new { r.UserId, r.IdeaId })
                       .IsUnique();
-
-                // Global filter to ignore deleted ratings
-                entity.HasQueryFilter(r => !r.IsDeleted);
             });
         }
     }
