@@ -7,9 +7,7 @@ namespace BlindIdea.Core.Entities
     public class Rating
     {
         public Guid Id { get; set; }
-
         public int Value { get; set; } // 1 to 5
-            
         public Guid IdeaId { get; set; }
         public Idea Idea { get; set; }
 
