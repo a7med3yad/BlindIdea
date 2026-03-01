@@ -24,6 +24,7 @@ namespace BlindIdea.API
             // ---------------- Services ----------------
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IJwtService, JwtService>();
+            builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.Configure<JwtOptions>(
                 configuration.GetSection("Jwt") // ✅ fixed section name
             );

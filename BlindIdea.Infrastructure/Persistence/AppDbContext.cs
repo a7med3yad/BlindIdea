@@ -14,6 +14,8 @@ namespace BlindIdea.Infrastructure.Data
         public DbSet<Team> Teams => Set<Team>();
         public DbSet<Idea> Ideas => Set<Idea>();
         public DbSet<Rating> Ratings => Set<Rating>();
+        public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+        public DbSet<EmailVerificationToken> EmailVerificationTokens => Set<EmailVerificationToken>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -25,6 +27,8 @@ namespace BlindIdea.Infrastructure.Data
             ConfigureTeam(modelBuilder);
             ConfigureIdea(modelBuilder);
             ConfigureRating(modelBuilder);
+            ConfigureRefreshToken(modelBuilder);
+            ConfigureEmailVerificationToken(modelBuilder);
         }
 
         private static void ConfigureUser(ModelBuilder modelBuilder)
@@ -147,6 +151,79 @@ namespace BlindIdea.Infrastructure.Data
 
                 entity.HasIndex(r => new { r.UserId, r.IdeaId })
                       .IsUnique();
+            });
+        }
+
+        private static void ConfigureRefreshToken(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<RefreshToken>(entity =>
+            {
+                entity.HasKey(rt => rt.Id);
+
+                entity.Property(rt => rt.TokenHash)
+                      .IsRequired()
+                      .HasMaxLength(256);
+
+                entity.Property(rt => rt.JwtId)
+                      .IsRequired()
+                      .HasMaxLength(256);
+
+                entity.Property(rt => rt.UserId)
+                      .IsRequired();
+
+                entity.Property(rt => rt.ExpiresAt)
+                      .IsRequired();
+
+                entity.Property(rt => rt.CreatedAt)
+                      .IsRequired();
+
+                entity.Property(rt => rt.CreatedByIp)
+                      .HasMaxLength(45); // IPv6 max length
+
+                entity.Property(rt => rt.RevokedByIp)
+                      .HasMaxLength(45);
+
+                entity.Property(rt => rt.IsUsed)
+                      .IsRequired()
+                      .HasDefaultValue(false);
+
+                entity.HasOne(rt => rt.User)
+                      .WithMany()
+                      .HasForeignKey(rt => rt.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(rt => rt.UserId);
+                entity.HasIndex(rt => rt.JwtId);
+                entity.HasIndex(rt => rt.ExpiresAt);
+            });
+        }
+
+        private static void ConfigureEmailVerificationToken(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<EmailVerificationToken>(entity =>
+            {
+                entity.HasKey(evt => evt.Id);
+
+                entity.Property(evt => evt.TokenHash)
+                      .IsRequired()
+                      .HasMaxLength(256);
+
+                entity.Property(evt => evt.UserId)
+                      .IsRequired();
+
+                entity.Property(evt => evt.ExpiresAt)
+                      .IsRequired();
+
+                entity.Property(evt => evt.CreatedAt)
+                      .IsRequired();
+
+                entity.HasOne(evt => evt.User)
+                      .WithMany()
+                      .HasForeignKey(evt => evt.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(evt => evt.UserId);
+                entity.HasIndex(evt => evt.ExpiresAt);
             });
         }
     }
