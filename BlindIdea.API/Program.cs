@@ -21,19 +21,27 @@ namespace BlindIdea.API
             var builder = WebApplication.CreateBuilder(args);
             var configuration = builder.Configuration;
 
-            // ---------------- Services ----------------
+            // ================= SERVICES =================
+
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IJwtService, JwtService>();
             builder.Services.AddScoped<IEmailService, EmailService>();
+
             builder.Services.Configure<JwtOptions>(
-                configuration.GetSection("Jwt") // ✅ fixed section name
+                configuration.GetSection("Jwt")
             );
+
             builder.Services.Configure<EmailOptions>(
-                configuration.GetSection("Email"));
+                configuration.GetSection("Email")
+            );
+
+            // ================= IDENTITY =================
 
             builder.Services.AddIdentity<User, IdentityRole>()
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
+
+            // ================= JWT AUTH =================
 
             builder.Services.AddAuthentication(options =>
             {
@@ -60,29 +68,54 @@ namespace BlindIdea.API
                 };
             });
 
-            // ---------------- Controllers & Swagger ----------------
+            // ================= CONTROLLERS =================
+
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
 
-            // ---------------- DbContext ----------------
+            // ================= SWAGGER =================
+
+            builder.Services.AddSwaggerGen();
+            builder.Services.AddOpenApi(options =>
+            {
+                options.AddDocumentTransformer((document, context, cancellation) =>
+                {
+                    document.Info = new()
+                    {
+                        Title = "BlindIdea API",
+                        Version = "v1",
+                        Description = "BlindIdea Backend API Documentation"
+                    };
+                    return Task.CompletedTask;
+                });
+            });
+
+            // ================= DATABASE =================
+
             builder.Services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"))
+                options.UseSqlServer(
+                    configuration.GetConnectionString("DefaultConnection"))
             );
 
             var app = builder.Build();
 
-            // ---------------- Middleware ----------------
-            if (app.Environment.IsDevelopment())
+            // ================= MIDDLEWARE =================
+
+            // ✅ Enable Swagger in ALL environments (Production included)
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
             {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-                app.ApplyMigrations(); // optional: applies DB migrations automatically
-            }
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "BlindIdea API v1");
+                c.RoutePrefix = "swagger"; // URL: /swagger
+            });
+
+            // Optional: Apply migrations automatically
+            app.ApplyMigrations();
 
             app.UseHttpsRedirection();
-            app.UseAuthentication(); // ✅ required
-            app.UseAuthorization();  // ✅ required
+
+            app.UseAuthentication();
+            app.UseAuthorization();
 
             app.MapControllers();
 
