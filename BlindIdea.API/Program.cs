@@ -101,16 +101,33 @@ namespace BlindIdea.API
 
             // ================= MIDDLEWARE =================
 
-            // ✅ Enable Swagger in ALL environments (Production included)
-            app.UseSwagger();
-            app.UseSwaggerUI(c =>
-            {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "BlindIdea API v1");
-                c.RoutePrefix = "swagger"; // URL: /swagger
-            });
+            // Add exception handling middleware
+            app.UseExceptionHandler("/error");
 
-            // Optional: Apply migrations automatically
-            app.ApplyMigrations();
+            // Enable Swagger in development only (disable in production for security)
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseSwagger();
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "BlindIdea API v1");
+                    c.RoutePrefix = "swagger"; // URL: /swagger
+                });
+            }
+
+            // Apply migrations only in development
+            if (app.Environment.IsDevelopment())
+            {
+                try
+                {
+                    app.ApplyMigrations();
+                }
+                catch (Exception ex)
+                {
+                    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+                    logger.LogError(ex, "An error occurred while applying migrations");
+                }
+            }
 
             app.UseHttpsRedirection();
 
