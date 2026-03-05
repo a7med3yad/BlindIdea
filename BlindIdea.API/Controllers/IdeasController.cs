@@ -1,4 +1,5 @@
 ﻿using BlindIdea.Application.Dtos;
+using BlindIdea.Application.Dtos.Idea.Requests;
 using BlindIdea.Application.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -21,17 +22,17 @@ namespace BlindIdea.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var ideas = await _ideaService.GetAllAsync();
+            var ideas = await _ideaService.SearchIdeasAsync(new SearchIdeasRequest());
             return Ok(ideas);
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(CreateIdeaDto dto)
+        public async Task<IActionResult> Create(CreateIdeaRequest request)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            var id = await _ideaService.CreateAsync(dto, userId);
-            return Ok(id);
+            var idea = await _ideaService.CreateIdeaAsync(request, userId);
+            return Ok(idea);
         }
     }
 

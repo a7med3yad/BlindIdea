@@ -1,4 +1,5 @@
-﻿using BlindIdea.Application.Services.Interfaces;
+﻿using BlindIdea.Application.Dtos.Team.Requests;
+using BlindIdea.Application.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -20,11 +21,11 @@ namespace BlindIdea.API.Controllers
 
         // ================= Create Team =================
         [HttpPost("create")]
-        public async Task<IActionResult> CreateTeam([FromBody] string teamName)
+        public async Task<IActionResult> CreateTeam([FromBody] CreateTeamRequest request)
         {
             var userId = User.Identity!.Name!; // assuming Name = UserId
-            var teamId = await _teamService.CreateTeamAsync(teamName, userId);
-            return Ok(new { TeamId = teamId });
+            var team = await _teamService.CreateTeamAsync(request, userId);
+            return Ok(team);
         }
 
         // ================= Add User to Team =================
@@ -32,7 +33,8 @@ namespace BlindIdea.API.Controllers
         public async Task<IActionResult> AddUserToTeam(Guid teamId, string userId)
         {
             var adminId = User.Identity!.Name!;
-            await _teamService.AddUserToTeamAsync(teamId, adminId, userId);
+            var request = new AddTeamMemberRequest { UserId = userId };
+            await _teamService.AddMemberAsync(teamId, request, adminId);
             return Ok(new { Message = "User added successfully" });
         }
 
@@ -40,8 +42,8 @@ namespace BlindIdea.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllTeams()
         {
-            var teams = await _teamService.GetAllTeamsAsync();
-            return Ok(teams);
+            var (teams, totalCount) = await _teamService.GetTeamsAsync();
+            return Ok(new { teams, totalCount });
         }
     }
 

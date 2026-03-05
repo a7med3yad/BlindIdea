@@ -1,74 +1,39 @@
-﻿using BlindIdea.Application.Dtos;
+﻿using BlindIdea.Application.Dtos.Team.Requests;
+using BlindIdea.Application.Dtos.Team.Responses;
 using BlindIdea.Application.Services.Interfaces;
 using BlindIdea.Core.Entities;
-using BlindIdea.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Threading.Tasks;
 
 namespace BlindIdea.Application.Services.Implementations
 {
     public class TeamService : ITeamService
     {
-        private readonly AppDbContext _context;
+        private readonly UserManager<User> _userManager;
+        private readonly ILogger<TeamService> _logger;
 
-        public TeamService(AppDbContext context)
+        public TeamService(UserManager<User> userManager, ILogger<TeamService> logger)
         {
-            _context = context;
+            _userManager = userManager;
+            _logger = logger;
         }
 
-        public async Task<Guid> CreateTeamAsync(string name, string adminId)
-        {
-            var team = new Team
-            {
-                Id = Guid.NewGuid(),
-                Name = name,
-                AdminId = adminId
-            };
-            _context.Teams.Add(team);
-
-            var adminUser = await _context.Users.FindAsync(adminId);
-            if (adminUser == null)
-                throw new Exception("Admin user not found.");
-
-            adminUser.TeamId = team.Id;
-
-            await _context.SaveChangesAsync();
-            return team.Id;
-        }
-
-        public async Task AddUserToTeamAsync(Guid teamId, string adminId, string userId)
-        {
-            var team = await _context.Teams.FindAsync(teamId);
-            if (team == null)
-                throw new Exception("Team not found.");
-
-            if (team.AdminId != adminId)
-                throw new Exception("Only admin can add users.");
-
-            var user = await _context.Users.FindAsync(userId);
-            if (user == null)
-                throw new Exception("User not found.");
-
-            if (user.TeamId != null)
-                throw new Exception("User already in a team.");
-
-            user.TeamId = teamId;
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task<List<TeamDto>> GetAllTeamsAsync()
-        {
-            return await _context.Teams
-                .Select(t => new TeamDto
-                {
-                    Id = t.Id,
-                    Name = t.Name,
-                    AdminId = t.AdminId,
-                    MemberCount = t.Members.Count
-                })
-                .ToListAsync();
-        }
+        public async Task<TeamResponse?> CreateTeamAsync(CreateTeamRequest request, string userId) => null;
+        public async Task<TeamResponse?> GetTeamAsync(Guid teamId) => null;
+        public async Task<(List<TeamSummaryResponse> teams, int totalCount)> GetTeamsAsync(int pageNumber = 1, int pageSize = 10) => (new(), 0);
+        public async Task<List<TeamResponse>> GetUserTeamsAsync(string userId) => new();
+        public async Task<TeamResponse?> UpdateTeamAsync(Guid teamId, UpdateTeamRequest request, string userId) => null;
+        public async Task<bool> DeleteTeamAsync(Guid teamId, string userId) => false;
+        public async Task<TeamMembersResponse?> AddMemberAsync(Guid teamId, AddTeamMemberRequest request, string adminId) => null;
+        public async Task<bool> RemoveMemberAsync(Guid teamId, RemoveTeamMemberRequest request, string requesterId) => false;
+        public async Task<TeamMembersResponse?> GetTeamMembersAsync(Guid teamId) => null;
+        public async Task<bool> IsTeamMemberAsync(Guid teamId, string userId) => false;
+        public async Task<bool> IsTeamAdminAsync(Guid teamId, string userId) => false;
+        public async Task<TeamResponse?> TransferAdminAsync(Guid teamId, TransferAdminRequest request, string currentAdminId) => null;
+        public async Task<(List<TeamSummaryResponse> teams, int totalCount)> SearchTeamsAsync(string searchTerm, int pageNumber = 1, int pageSize = 10) => (new(), 0);
+        public async Task<TeamStatisticsResponse?> GetTeamStatisticsAsync(Guid teamId) => null;
     }
 }

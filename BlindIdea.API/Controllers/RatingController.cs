@@ -1,4 +1,5 @@
-﻿using BlindIdea.Application.Services.Interfaces;
+﻿using BlindIdea.Application.Dtos.Rating.Requests;
+using BlindIdea.Application.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -28,7 +29,8 @@ namespace BlindIdea.API.Controllers
 
             try
             {
-                await _ratingService.RateIdeaAsync(ideaId, value, userId);
+                var request = new CreateRatingRequest { IdeaId = ideaId, Value = value };
+                await _ratingService.CreateRatingAsync(request, userId);
                 return Ok(new { Message = "Idea rated successfully." });
             }
             catch (Exception ex)
