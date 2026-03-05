@@ -10,10 +10,7 @@ using System.Threading.Tasks;
 
 namespace BlindIdea.Application.Services.Implementations
 {
-    /// <summary>
-    /// Service implementation for email operations.
-    /// Handles transactional emails including verification, password reset, and notifications.
-    /// </summary>
+    
     public class EmailService : IEmailService
     {
         private readonly IConfiguration _configuration;
@@ -25,14 +22,12 @@ namespace BlindIdea.Application.Services.Implementations
             _logger = logger;
         }
 
-        // ===== CORE EMAIL SENDING =====
-
         public async Task<bool> SendEmailAsync(string toEmail, string subject, string message)
         {
             try
             {
                 _logger.LogInformation($"Sending plain text email to '{toEmail}' with subject '{subject}'");
-                return false; // Stub implementation
+                return false; 
             }
             catch (Exception ex)
             {
@@ -46,7 +41,7 @@ namespace BlindIdea.Application.Services.Implementations
             try
             {
                 _logger.LogInformation($"Sending HTML email to '{toEmail}' with subject '{subject}'");
-                return false; // Stub implementation
+                return false; 
             }
             catch (Exception ex)
             {
@@ -60,7 +55,7 @@ namespace BlindIdea.Application.Services.Implementations
             try
             {
                 _logger.LogInformation($"Sending bulk email to {toEmails.Count} recipients with subject '{subject}'");
-                return false; // Stub implementation
+                return false; 
             }
             catch (Exception ex)
             {
@@ -69,14 +64,12 @@ namespace BlindIdea.Application.Services.Implementations
             }
         }
 
-        // ===== AUTHENTICATION EMAILS =====
-
         public async Task<bool> SendEmailVerificationAsync(string toEmail, string userName, string verificationUrl)
         {
             try
             {
                 _logger.LogInformation($"Sending email verification link to '{toEmail}' for user '{userName}'");
-                return false; // Stub implementation
+                return false; 
             }
             catch (Exception ex)
             {
@@ -90,7 +83,7 @@ namespace BlindIdea.Application.Services.Implementations
             try
             {
                 _logger.LogInformation($"Sending password reset link to '{toEmail}' for user '{userName}'");
-                return false; // Stub implementation
+                return false; 
             }
             catch (Exception ex)
             {
@@ -104,7 +97,7 @@ namespace BlindIdea.Application.Services.Implementations
             try
             {
                 _logger.LogInformation($"Sending password change confirmation to '{toEmail}' for user '{userName}'");
-                return false; // Stub implementation
+                return false; 
             }
             catch (Exception ex)
             {
@@ -119,7 +112,7 @@ namespace BlindIdea.Application.Services.Implementations
             try
             {
                 _logger.LogInformation($"Sending suspicious activity alert to '{toEmail}' for user '{userName}' from IP '{ipAddress ?? "unknown"}'");
-                return false; // Stub implementation
+                return false; 
             }
             catch (Exception ex)
             {
@@ -128,15 +121,13 @@ namespace BlindIdea.Application.Services.Implementations
             }
         }
 
-        // ===== NOTIFICATION EMAILS =====
-
         public async Task<bool> SendIdeaRatedNotificationAsync(
             string toEmail, string userName, string raterName, string ideaTitle, int rating, string ideaUrl)
         {
             try
             {
                 _logger.LogInformation($"Sending idea rated notification to '{toEmail}' - idea '{ideaTitle}' rated {rating} stars by '{raterName}'");
-                return false; // Stub implementation
+                return false; 
             }
             catch (Exception ex)
             {
@@ -151,7 +142,7 @@ namespace BlindIdea.Application.Services.Implementations
             try
             {
                 _logger.LogInformation($"Sending new idea notification to '{toEmail}' - idea '{ideaTitle}' by '{ideaCreator}' in team '{teamName}'");
-                return false; // Stub implementation
+                return false; 
             }
             catch (Exception ex)
             {
@@ -165,7 +156,7 @@ namespace BlindIdea.Application.Services.Implementations
             try
             {
                 _logger.LogInformation($"Sending team invitation to '{toEmail}' for team '{teamName}' added by '{addedBy}'");
-                return false; // Stub implementation
+                return false; 
             }
             catch (Exception ex)
             {
@@ -174,14 +165,12 @@ namespace BlindIdea.Application.Services.Implementations
             }
         }
 
-        // ===== UTILITY =====
-
         public async Task<bool> SendTestEmailAsync(string toEmail)
         {
             try
             {
                 _logger.LogInformation($"Sending test email to '{toEmail}'");
-                return false; // Stub implementation
+                return false; 
             }
             catch (Exception ex)
             {
@@ -198,7 +187,6 @@ namespace BlindIdea.Application.Services.Implementations
                 if (string.IsNullOrWhiteSpace(email))
                     return false;
 
-                // Basic email regex pattern
                 var emailPattern = @"^[^\s@]+@[^\s@]+\.[^\s@]+$";
                 return Regex.IsMatch(email, emailPattern);
             }

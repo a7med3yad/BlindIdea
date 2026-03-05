@@ -5,10 +5,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace BlindIdea.Infrastructure.Migrations
 {
-    /// <inheritdoc />
+    
     public partial class AddRefreshTokenAndEmailVerificationToken : Migration
     {
-        /// <inheritdoc />
+        
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -95,7 +95,6 @@ namespace BlindIdea.Infrastructure.Migrations
                 column: "UserId");
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(

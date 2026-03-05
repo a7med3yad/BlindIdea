@@ -19,16 +19,14 @@ namespace BlindIdea.API.Controllers
             _teamService = teamService;
         }
 
-        // ================= Create Team =================
         [HttpPost("create")]
         public async Task<IActionResult> CreateTeam([FromBody] CreateTeamRequest request)
         {
-            var userId = User.Identity!.Name!; // assuming Name = UserId
+            var userId = User.Identity!.Name!; 
             var team = await _teamService.CreateTeamAsync(request, userId);
             return Ok(team);
         }
 
-        // ================= Add User to Team =================
         [HttpPost("{teamId}/add-user/{userId}")]
         public async Task<IActionResult> AddUserToTeam(Guid teamId, string userId)
         {
@@ -38,7 +36,6 @@ namespace BlindIdea.API.Controllers
             return Ok(new { Message = "User added successfully" });
         }
 
-        // ================= Get All Teams =================
         [HttpGet]
         public async Task<IActionResult> GetAllTeams()
         {

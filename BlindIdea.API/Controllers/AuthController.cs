@@ -9,10 +9,6 @@ using System.Security.Claims;
 
 namespace BlindIdea.API.Controllers
 {
-    /// <summary>
-    /// Authentication endpoints for user registration, login, token management, and email verification.
-    /// Implements production-grade security practices with token rotation, refresh token revocation, and email verification.
-    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
@@ -22,9 +18,6 @@ namespace BlindIdea.API.Controllers
         private readonly IPasswordValidator _passwordValidator;
         private readonly ILogger<AuthController> _logger;
 
-        /// <summary>
-        /// Constructor injecting required services.
-        /// </summary>
         public AuthController(
             IAuthService authService,
             IPasswordValidator passwordValidator,
@@ -35,20 +28,6 @@ namespace BlindIdea.API.Controllers
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        // ===== REGISTRATION =====
-
-        /// <summary>
-        /// Registers a new user with email and password.
-        /// Sends email verification link that must be clicked before login.
-        /// </summary>
-        /// <remarks>
-        /// **Password Requirements:**
-        /// - Minimum 8 characters
-        /// - At least one uppercase letter (A-Z)
-        /// - At least one lowercase letter (a-z)
-        /// - At least one number (0-9)
-        /// - At least one special character (!@#$%^&*_+=-[]{}';:\"\\|,.<>/?")
-        /// </remarks>
         [HttpPost("register")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
@@ -65,7 +44,6 @@ namespace BlindIdea.API.Controllers
                     ));
                 }
 
-                // Validate password strength
                 var passwordValidation = _passwordValidator.Validate(request.Password);
                 if (!passwordValidation.IsValid)
                 {
@@ -76,7 +54,6 @@ namespace BlindIdea.API.Controllers
                     ));
                 }
 
-                // Register user
                 var response = await _authService.RegisterAsync(request);
                 
                 _logger.LogInformation($"User registered successfully: {response.User.Id}");
@@ -94,13 +71,6 @@ namespace BlindIdea.API.Controllers
             }
         }
 
-        // ===== LOGIN =====
-
-        /// <summary>
-        /// Authenticates user with email and password.
-        /// Returns access token (15 min expiry) and refresh token (7 days expiry).
-        /// Email must be verified before successful login.
-        /// </summary>
         [HttpPost("login")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
@@ -140,13 +110,6 @@ namespace BlindIdea.API.Controllers
             }
         }
 
-        // ===== TOKEN MANAGEMENT =====
-
-        /// <summary>
-        /// Refreshes an expired access token using a valid refresh token.
-        /// Implements token rotation: old token is revoked, new tokens are issued.
-        /// Detects and prevents replay attacks by revoking all tokens if revoked token is reused.
-        /// </summary>
         [HttpPost("refresh-token")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
@@ -181,10 +144,6 @@ namespace BlindIdea.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Logs out the user by revoking their current refresh token.
-        /// Prevents the token from being used again.
-        /// </summary>
         [HttpPost("logout")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
@@ -210,10 +169,6 @@ namespace BlindIdea.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Revokes all refresh tokens for the current user.
-        /// Effectively logs out user from all devices/sessions.
-        /// </summary>
         [HttpPost("revoke-all")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
@@ -247,12 +202,6 @@ namespace BlindIdea.API.Controllers
             }
         }
 
-        // ===== EMAIL VERIFICATION =====
-
-        /// <summary>
-        /// Verifies user's email address using the verification token.
-        /// Email must be verified before user can login.
-        /// </summary>
         [HttpPost("verify-email")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<VerifyEmailResponse>), StatusCodes.Status200OK)]
@@ -286,10 +235,6 @@ namespace BlindIdea.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Resends email verification token to unverified users.
-        /// Rate-limited: maximum once per 2 minutes per user.
-        /// </summary>
         [HttpPost("resend-verification")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
@@ -327,13 +272,6 @@ namespace BlindIdea.API.Controllers
             }
         }
 
-        // ===== PASSWORD MANAGEMENT =====
-
-        /// <summary>
-        /// Changes password for the authenticated user.
-        /// Requires verification of current password before accepting new password.
-        /// All refresh tokens are revoked after successful password change.
-        /// </summary>
         [HttpPost("change-password")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
@@ -360,7 +298,6 @@ namespace BlindIdea.API.Controllers
                     ));
                 }
 
-                // Validate new password strength
                 var passwordValidation = _passwordValidator.Validate(request.NewPassword);
                 if (!passwordValidation.IsValid)
                 {
@@ -396,10 +333,6 @@ namespace BlindIdea.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Initiates password reset flow by sending reset email.
-        /// Does not reveal whether email exists (security best practice).
-        /// </summary>
         [HttpPost("request-password-reset")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
@@ -432,9 +365,6 @@ namespace BlindIdea.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Completes password reset using the reset token sent via email.
-        /// </summary>
         [HttpPost("reset-password")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
@@ -451,7 +381,6 @@ namespace BlindIdea.API.Controllers
                     ));
                 }
 
-                // Validate new password strength
                 var passwordValidation = _passwordValidator.Validate(request.NewPassword);
                 if (!passwordValidation.IsValid)
                 {
@@ -482,11 +411,6 @@ namespace BlindIdea.API.Controllers
             }
         }
 
-        // ===== USER PROFILE =====
-
-        /// <summary>
-        /// Gets the authenticated user's profile information.
-        /// </summary>
         [HttpGet("profile")]
         [Authorize]
         [ProducesResponseType(typeof(ApiResponse<UserResponse>), StatusCodes.Status200OK)]
@@ -522,11 +446,6 @@ namespace BlindIdea.API.Controllers
             }
         }
 
-        // ===== HELPER METHODS =====
-
-        /// <summary>
-        /// Gets the client's IP address from the request.
-        /// </summary>
         private string GetClientIpAddress()
         {
             if (Request.Headers.TryGetValue("X-Forwarded-For", out var forwardedFor))

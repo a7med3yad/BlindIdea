@@ -18,11 +18,10 @@ namespace BlindIdea.API.Controllers
             _ratingService = ratingService;
         }
 
-        // ================= Rate an Idea =================
         [HttpPost("{ideaId}")]
         public async Task<IActionResult> RateIdea(Guid ideaId, [FromQuery] int value)
         {
-            var userId = User.Identity!.Name!; // assuming Name = UserId
+            var userId = User.Identity!.Name!; 
 
             if (value < 1 || value > 5)
                 return BadRequest(new { Message = "Rating must be between 1 and 5." });

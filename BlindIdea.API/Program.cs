@@ -25,43 +25,32 @@ namespace BlindIdea.API
             var builder = WebApplication.CreateBuilder(args);
             var configuration = builder.Configuration;
 
-            // ================= SERVICES =================
-
-            // Application Services
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<ITeamService, TeamService>();
             builder.Services.AddScoped<IIdeaService, IdeaService>();
             builder.Services.AddScoped<IRatingService, RatingService>();
             
-            // Infrastructure Services
             builder.Services.AddScoped<IJwtService, JwtService>();
             builder.Services.AddScoped<IPasswordValidator, PasswordValidator>();
             builder.Services.AddScoped<IEmailService, EmailService>();
             
-            // Repository & Unit of Work
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
-            // Configuration Options
             builder.Services.Configure<JwtOptions>(
                 configuration.GetSection("Jwt"));
 
             builder.Services.Configure<EmailOptions>(
                 configuration.GetSection("Email"));
 
-            // ================= DATABASE =================
-
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(
                     configuration.GetConnectionString("DefaultConnection")));
-
-            // ================= IDENTITY =================
 
             builder.Services.AddIdentity<User, IdentityRole>()
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
 
-            // Configure password rules
             builder.Services.Configure<IdentityOptions>(options =>
             {
                 options.Password.RequireDigit = true;
@@ -71,16 +60,12 @@ namespace BlindIdea.API
                 options.Password.RequiredLength = 8;
                 options.Password.RequiredUniqueChars = 1;
                 
-                // Lockout settings
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
                 options.Lockout.MaxFailedAccessAttempts = 5;
                 options.Lockout.AllowedForNewUsers = true;
                 
-                // User settings
                 options.User.RequireUniqueEmail = true;
             });
-
-            // ================= JWT =================
 
             var jwtKey = configuration["Jwt:Key"];
 
@@ -104,13 +89,11 @@ namespace BlindIdea.API
                     ValidAudience = configuration["Jwt:Audience"],
                     IssuerSigningKey = new SymmetricSecurityKey(
                         Encoding.UTF8.GetBytes(jwtKey)),
-                    ClockSkew = TimeSpan.Zero // No clock skew tolerance
+                    ClockSkew = TimeSpan.Zero 
                 };
             });
 
             builder.Services.AddAuthorization();
-
-            // ================= CORS =================
 
             builder.Services.AddCors(options =>
             {
@@ -123,11 +106,7 @@ namespace BlindIdea.API
                 });
             });
 
-            // ================= CONTROLLERS =================
-
             builder.Services.AddControllers();
-
-            // ================= LOGGING =================
 
             builder.Services.AddLogging(config =>
             {
@@ -137,30 +116,21 @@ namespace BlindIdea.API
                     config.AddDebug();
             });
 
-            // ================= OPENAPI (.NET 10 BUILT-IN) =================
-
             builder.Services.AddOpenApi();
-
-            // ================= SWAGGER =================
 
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
 
-            // ================= MIDDLEWARE =================
-
-            // Exception handling - must be first
             app.UseMiddleware<ExceptionHandlingMiddleware>();
 
             if (app.Environment.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
 
-                // Built-in OpenAPI endpoint
                 app.MapOpenApi();
 
-                // Swagger UI
                 app.UseSwagger();
                 app.UseSwaggerUI(options =>
                 {
@@ -179,18 +149,15 @@ namespace BlindIdea.API
 
             app.MapControllers();
 
-            // ================= DATABASE INITIALIZATION =================
-
             using (var scope = app.Services.CreateScope())
             {
                 var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
                 try
                 {
-                    // Apply pending migrations
+                    
                     dbContext.Database.Migrate();
                     
-                    // Seed roles
                     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
                     SeedRolesAsync(roleManager).Wait();
                     
@@ -206,9 +173,6 @@ namespace BlindIdea.API
             app.Run();
         }
 
-        /// <summary>
-        /// Seeds initial roles into the database if they don't exist.
-        /// </summary>
         private static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)
         {
             var roles = new[] { "Admin", "TeamAdmin", "User" };
