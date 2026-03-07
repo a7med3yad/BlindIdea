@@ -14,9 +14,7 @@ namespace BlindIdea.Core.Interfaces
 
         IRepository<Rating> Ratings { get; }
 
-        IRepository<RefreshToken> RefreshTokens { get; }
 
-        IRepository<EmailVerificationToken> EmailVerificationTokens { get; }
 
         Task<int> CommitAsync();
 

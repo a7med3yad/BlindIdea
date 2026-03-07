@@ -2,56 +2,56 @@ using System.ComponentModel.DataAnnotations;
 
 namespace BlindIdea.Application.Dtos.Auth.Requests
 {
-    
+    /// <summary>
+    /// Request for user registration
+    /// </summary>
     public class RegisterRequest
     {
-        
         [Required(ErrorMessage = "Name is required")]
         [StringLength(100, MinimumLength = 2, ErrorMessage = "Name must be between 2 and 100 characters")]
         public string Name { get; set; } = null!;
 
         [Required(ErrorMessage = "Email is required")]
-        [EmailAddress(ErrorMessage = "Email address is not in a valid format")]
-        [StringLength(255, ErrorMessage = "Email cannot exceed 255 characters")]
+        [EmailAddress(ErrorMessage = "Invalid email address")]
         public string Email { get; set; } = null!;
 
         [Required(ErrorMessage = "Password is required")]
-        [StringLength(256, MinimumLength = 8, ErrorMessage = "Password must be between 8 and 256 characters")]
-        [DataType(DataType.Password)]
+        [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be at least 8 characters")]
         public string Password { get; set; } = null!;
 
         [Required(ErrorMessage = "Password confirmation is required")]
-        [Compare("Password", ErrorMessage = "Password and confirmation password do not match")]
-        [DataType(DataType.Password)]
+        [Compare("Password", ErrorMessage = "Passwords do not match")]
         public string ConfirmPassword { get; set; } = null!;
     }
 
+    /// <summary>
+    /// Request for user login
+    /// </summary>
     public class LoginRequest
     {
-        
         [Required(ErrorMessage = "Email is required")]
-        [EmailAddress(ErrorMessage = "Email address is not in a valid format")]
+        [EmailAddress(ErrorMessage = "Invalid email address")]
         public string Email { get; set; } = null!;
 
         [Required(ErrorMessage = "Password is required")]
-        [DataType(DataType.Password)]
         public string Password { get; set; } = null!;
 
         public bool RememberMe { get; set; } = false;
     }
 
-    public class RefreshTokenRequest
+    /// <summary>
+    /// Request for logout
+    /// </summary>
+    public class LogoutRequest
     {
-        
-        [Required(ErrorMessage = "Refresh token is required")]
-        public string RefreshToken { get; set; } = null!;
-
-        public string? IpAddress { get; set; }
+        public int Id { get; set; }
     }
 
+    /// <summary>
+    /// Request for email verification
+    /// </summary>
     public class VerifyEmailRequest
     {
-        
         [Required(ErrorMessage = "User ID is required")]
         public string UserId { get; set; } = null!;
 
@@ -59,64 +59,25 @@ namespace BlindIdea.Application.Dtos.Auth.Requests
         public string Token { get; set; } = null!;
     }
 
+    /// <summary>
+    /// Request to resend verification email
+    /// </summary>
     public class ResendVerificationEmailRequest
     {
-        
         [Required(ErrorMessage = "Email is required")]
-        [EmailAddress(ErrorMessage = "Email address is not in a valid format")]
+        [EmailAddress(ErrorMessage = "Invalid email address")]
         public string Email { get; set; } = null!;
     }
 
-    public class LogoutRequest
+    /// <summary>
+    /// Request to update user profile
+    /// </summary>
+    public class UpdateUserProfileRequest
     {
-        
-        [Required(ErrorMessage = "Refresh token is required")]
-        public string RefreshToken { get; set; } = null!;
-    }
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Name must be between 2 and 100 characters")]
+        public string? Name { get; set; }
 
-    public class ChangePasswordRequest
-    {
-        
-        [Required(ErrorMessage = "Current password is required")]
-        [DataType(DataType.Password)]
-        public string CurrentPassword { get; set; } = null!;
-
-        [Required(ErrorMessage = "New password is required")]
-        [StringLength(256, MinimumLength = 8, ErrorMessage = "Password must be between 8 and 256 characters")]
-        [DataType(DataType.Password)]
-        public string NewPassword { get; set; } = null!;
-
-        [Required(ErrorMessage = "Password confirmation is required")]
-        [Compare("NewPassword", ErrorMessage = "New password and confirmation do not match")]
-        [DataType(DataType.Password)]
-        public string ConfirmNewPassword { get; set; } = null!;
-    }
-
-    public class RequestPasswordResetRequest
-    {
-        
-        [Required(ErrorMessage = "Email is required")]
-        [EmailAddress(ErrorMessage = "Email address is not in a valid format")]
-        public string Email { get; set; } = null!;
-    }
-
-    public class ResetPasswordRequest
-    {
-        
-        [Required(ErrorMessage = "User ID is required")]
-        public string UserId { get; set; } = null!;
-
-        [Required(ErrorMessage = "Reset token is required")]
-        public string ResetToken { get; set; } = null!;
-
-        [Required(ErrorMessage = "New password is required")]
-        [StringLength(256, MinimumLength = 8, ErrorMessage = "Password must be between 8 and 256 characters")]
-        [DataType(DataType.Password)]
-        public string NewPassword { get; set; } = null!;
-
-        [Required(ErrorMessage = "Password confirmation is required")]
-        [Compare("NewPassword", ErrorMessage = "New password and confirmation do not match")]
-        [DataType(DataType.Password)]
-        public string ConfirmNewPassword { get; set; } = null!;
+        [EmailAddress(ErrorMessage = "Invalid email address")]
+        public string? Email { get; set; }
     }
 }

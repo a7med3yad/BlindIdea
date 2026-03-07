@@ -21,10 +21,6 @@ namespace BlindIdea.Infrastructure.Data
 
         public DbSet<Rating> Ratings => Set<Rating>();
 
-        public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
-
-        public DbSet<EmailVerificationToken> EmailVerificationTokens => Set<EmailVerificationToken>();
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -35,8 +31,6 @@ namespace BlindIdea.Infrastructure.Data
             ConfigureTeam(modelBuilder);
             ConfigureIdea(modelBuilder);
             ConfigureRating(modelBuilder);
-            ConfigureRefreshToken(modelBuilder);
-            ConfigureEmailVerificationToken(modelBuilder);
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -277,76 +271,5 @@ namespace BlindIdea.Infrastructure.Data
             });
         }
 
-        private static void ConfigureRefreshToken(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<RefreshToken>(entity =>
-            {
-                
-                entity.HasKey(rt => rt.Id);
-
-                entity.Property(rt => rt.TokenHash)
-                      .IsRequired()
-                      .HasMaxLength(256);
-
-                entity.Property(rt => rt.JwtId)
-                      .IsRequired()
-                      .HasMaxLength(256);
-
-                entity.Property(rt => rt.UserId)
-                      .IsRequired();
-
-                entity.Property(rt => rt.ExpiresAt)
-                      .IsRequired();
-
-                entity.Property(rt => rt.CreatedByIp)
-                      .HasMaxLength(45);
-
-                entity.Property(rt => rt.RevokedByIp)
-                      .HasMaxLength(45);
-
-                entity.Property(rt => rt.IsUsed)
-                      .HasDefaultValue(false);
-
-                entity.HasOne(rt => rt.User)
-                      .WithMany()
-                      .HasForeignKey(rt => rt.UserId)
-                      .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasIndex(rt => rt.UserId);
-                entity.HasIndex(rt => rt.JwtId);
-                entity.HasIndex(rt => rt.ExpiresAt);
-                entity.HasIndex(rt => rt.TokenHash);
-                entity.HasIndex(rt => rt.IsRevoked);
-            });
-        }
-
-        private static void ConfigureEmailVerificationToken(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<EmailVerificationToken>(entity =>
-            {
-                
-                entity.HasKey(evt => evt.Id);
-
-                entity.Property(evt => evt.TokenHash)
-                      .IsRequired()
-                      .HasMaxLength(256);
-
-                entity.Property(evt => evt.UserId)
-                      .IsRequired();
-
-                entity.Property(evt => evt.ExpiresAt)
-                      .IsRequired();
-
-                entity.HasOne(evt => evt.User)
-                      .WithMany()
-                      .HasForeignKey(evt => evt.UserId)
-                      .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasIndex(evt => evt.UserId);
-                entity.HasIndex(evt => evt.ExpiresAt);
-                entity.HasIndex(evt => evt.TokenHash);
-                entity.HasIndex(evt => evt.IsUsed);
-            });
-        }
     }
 }

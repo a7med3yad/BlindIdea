@@ -3,15 +3,12 @@ using BlindIdea.Application.Services.Implementations;
 using BlindIdea.Application.Services.Interfaces;
 using BlindIdea.Core.Entities;
 using BlindIdea.Core.Interfaces;
-using BlindIdea.Infrastructure.Common.Options;
 using BlindIdea.Infrastructure.Data;
 using BlindIdea.Infrastructure.Implementation;
-using BlindIdea.Infrastructure.Services;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 
 using System.Text;
@@ -25,23 +22,13 @@ namespace BlindIdea.API
             var builder = WebApplication.CreateBuilder(args);
             var configuration = builder.Configuration;
 
-            builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<ITeamService, TeamService>();
             builder.Services.AddScoped<IIdeaService, IdeaService>();
             builder.Services.AddScoped<IRatingService, RatingService>();
-            
-            builder.Services.AddScoped<IJwtService, JwtService>();
-            builder.Services.AddScoped<IPasswordValidator, PasswordValidator>();
-            builder.Services.AddScoped<IEmailService, EmailService>();
-            
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
-            builder.Services.Configure<JwtOptions>(
-                configuration.GetSection("Jwt"));
 
-            builder.Services.Configure<EmailOptions>(
-                configuration.GetSection("Email"));
 
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(
@@ -51,47 +38,6 @@ namespace BlindIdea.API
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
 
-            builder.Services.Configure<IdentityOptions>(options =>
-            {
-                options.Password.RequireDigit = true;
-                options.Password.RequireLowercase = true;
-                options.Password.RequireUppercase = true;
-                options.Password.RequireNonAlphanumeric = true;
-                options.Password.RequiredLength = 8;
-                options.Password.RequiredUniqueChars = 1;
-                
-                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
-                options.Lockout.MaxFailedAccessAttempts = 5;
-                options.Lockout.AllowedForNewUsers = true;
-                
-                options.User.RequireUniqueEmail = true;
-            });
-
-            var jwtKey = configuration["Jwt:Key"];
-
-            if (string.IsNullOrWhiteSpace(jwtKey))
-                throw new Exception("JWT Key is missing in appsettings.json");
-
-            builder.Services.AddAuthentication(options =>
-            {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            })
-            .AddJwtBearer(options =>
-            {
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
-                    ValidIssuer = configuration["Jwt:Issuer"],
-                    ValidAudience = configuration["Jwt:Audience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(jwtKey)),
-                    ClockSkew = TimeSpan.Zero 
-                };
-            });
 
             builder.Services.AddAuthorization();
 
@@ -130,12 +76,8 @@ namespace BlindIdea.API
                 app.UseDeveloperExceptionPage();
 
                 app.MapOpenApi();
-
                 app.UseSwagger();
-                app.UseSwaggerUI(options =>
-                {
-                    options.SwaggerEndpoint("/swagger/v1/swagger.json", "BlindIdea API v1");
-                });
+                app.UseSwaggerUI();
             }
             else
             {

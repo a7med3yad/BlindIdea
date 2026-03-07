@@ -16,9 +16,6 @@ namespace BlindIdea.Infrastructure.Implementation
         private IRepository<Team>? _teams;
         private IRepository<Idea>? _ideas;
         private IRepository<Rating>? _ratings;
-        private IRepository<RefreshToken>? _refreshTokens;
-        private IRepository<EmailVerificationToken>? _emailVerificationTokens;
-
         private bool _disposed = false;
 
         public UnitOfWork(AppDbContext context)
@@ -34,9 +31,6 @@ namespace BlindIdea.Infrastructure.Implementation
 
         public IRepository<Rating> Ratings => _ratings ??= new Repository<Rating>(_context);
 
-        public IRepository<RefreshToken> RefreshTokens => _refreshTokens ??= new Repository<RefreshToken>(_context);
-
-        public IRepository<EmailVerificationToken> EmailVerificationTokens => _emailVerificationTokens ??= new Repository<EmailVerificationToken>(_context);
 
         public async Task BeginTransactionAsync()
         {
