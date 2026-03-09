@@ -1,5 +1,5 @@
-﻿using BlindIdea.Core.Interfaces;
-using BlindIdea.Infrastructure.Data;
+using BlindIdea.Core.Interfaces;
+using BlindIdea.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;

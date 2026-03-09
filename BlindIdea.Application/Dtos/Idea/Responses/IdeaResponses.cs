@@ -1,7 +1,7 @@
+using BlindIdea.Application.Dtos.Common;
 using System;
 
-namespace BlindIdea.Application.Dtos.Idea.Responses
-{
+namespace BlindIdea.Application.Dtos.Idea.Responses;
     
     public class IdeaResponse
     {
@@ -73,17 +73,16 @@ namespace BlindIdea.Application.Dtos.Idea.Responses
 
     public class TeamBasicResponse
     {
-        
         public Guid Id { get; set; }
-
         public string Name { get; set; } = null!;
     }
 
-    public class UserBasicResponse
+    public class IdeaStatisticsResponse
     {
-        
-        public string Id { get; set; } = null!;
-
-        public string Name { get; set; } = null!;
+        public int TotalIdeas { get; set; }
+        public int TotalRatings { get; set; }
+        public double AverageRating { get; set; }
+        public int AnonymousIdeas { get; set; }
+        public int TeamIdeas { get; set; }
+        public int PersonalIdeas { get; set; }
     }
-}

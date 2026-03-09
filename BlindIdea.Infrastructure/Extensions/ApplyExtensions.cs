@@ -1,5 +1,4 @@
-﻿using System;
-using BlindIdea.Infrastructure.Data;
+using BlindIdea.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Builder; 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

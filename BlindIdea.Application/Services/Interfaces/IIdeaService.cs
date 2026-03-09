@@ -1,4 +1,4 @@
-﻿using BlindIdea.Application.Dtos.Idea.Requests;
+using BlindIdea.Application.Dtos.Idea.Requests;
 using BlindIdea.Application.Dtos.Idea.Responses;
 using System;
 using System.Collections.Generic;
@@ -35,21 +35,5 @@ namespace BlindIdea.Application.Services.Interfaces
         Task<List<IdeaSummaryResponse>> GetTopIdeasAsync(int count = 10);
 
         Task<List<IdeaSummaryResponse>> GetRecentIdeasAsync(int count = 10);
-    }
-
-    public class IdeaStatisticsResponse
-    {
-        
-        public int TotalIdeas { get; set; }
-
-        public int TotalRatings { get; set; }
-
-        public double AverageRating { get; set; }
-
-        public int AnonymousIdeas { get; set; }
-
-        public int TeamIdeas { get; set; }
-
-        public int PersonalIdeas { get; set; }
     }
 }
