@@ -1,7 +1,7 @@
+using BlindIdea.Application.Dtos.Common;
 using System;
 
-namespace BlindIdea.Application.Dtos.Rating.Responses
-{
+namespace BlindIdea.Application.Dtos.Rating.Responses;
     
     public class RatingResponse
     {
@@ -56,7 +56,7 @@ namespace BlindIdea.Application.Dtos.Rating.Responses
 
         public bool HasPreviousPage => PageNumber > 1;
 
-        public RatingStatisticsResponse Statistics { get; set; } = null!;
+        public RatingStatisticsResponse? Statistics { get; set; }
     }
 
     public class RatingStatisticsResponse
@@ -82,12 +82,3 @@ namespace BlindIdea.Application.Dtos.Rating.Responses
 
         public double PercentPositive { get; set; }
     }
-
-    public class UserBasicResponse
-    {
-        
-        public string Id { get; set; } = null!;
-
-        public string Name { get; set; } = null!;
-    }
-}

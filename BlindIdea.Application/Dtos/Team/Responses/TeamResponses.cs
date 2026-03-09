@@ -1,7 +1,7 @@
+using BlindIdea.Application.Dtos.Common;
 using System;
 
-namespace BlindIdea.Application.Dtos.Team.Responses
-{
+namespace BlindIdea.Application.Dtos.Team.Responses;
     
     public class TeamResponse
     {
@@ -51,25 +51,9 @@ namespace BlindIdea.Application.Dtos.Team.Responses
 
     public class TeamMemberResponse
     {
-        
         public string UserId { get; set; } = null!;
-
         public string Name { get; set; } = null!;
-
         public string Email { get; set; } = null!;
-
         public bool IsAdmin { get; set; }
-
         public DateTime JoinedAt { get; set; }
     }
-
-    public class UserBasicResponse
-    {
-        
-        public string Id { get; set; } = null!;
-
-        public string Name { get; set; } = null!;
-
-        public string Email { get; set; } = null!;
-    }
-}
