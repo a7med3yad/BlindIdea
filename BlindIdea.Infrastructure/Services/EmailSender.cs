@@ -30,7 +30,7 @@ public class EmailSender : IEmailSender
 
             var message = new MailMessage(_options.From ?? "", to, subject, htmlBody) { IsBodyHtml = true };
             await client.SendMailAsync(message, cancellationToken);
-            _logger.LogInformation("Email sent to {To}", to);
+            _logger.LogInformation("Email sent successfully to {To}", to);
         }
         catch (Exception ex)
         {
@@ -39,16 +39,29 @@ public class EmailSender : IEmailSender
         }
     }
 
-    public async Task SendVerificationEmailAsync(string email, string verificationToken, CancellationToken cancellationToken = default)
+    public async Task SendVerificationEmailAsync(string userId, string email, string verificationToken, CancellationToken cancellationToken = default)
     {
-        var baseUrl = _options.AppBaseUrl?.TrimEnd('/') ?? "http://localhost:5000";
-        var verificationUrl = $"{baseUrl}/api/auth/verify-email?token={verificationToken}&email={Uri.EscapeDataString(email)}";
+        var baseUrl = _options.AppBaseUrl?.TrimEnd('/') ?? "https://localhost:7024";
+        var encodedToken = Uri.EscapeDataString(verificationToken);
+        var encodedUserId = Uri.EscapeDataString(userId);
+        var verificationUrl = $"{baseUrl}/api/auth/verify-email?userId={encodedUserId}&token={encodedToken}";
+
         var htmlBody = $@"
-            <h2>Verify your email</h2>
-            <p>Please click the link below to verify your email address:</p>
-            <p><a href=""{verificationUrl}"">Verify Email</a></p>
-            <p>This link will expire in 60 minutes.</p>
-        ";
+            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                <h2 style='color: #333;'>Welcome to BlindIdea!</h2>
+                <p>Thank you for registering. Please verify your email address by clicking the button below:</p>
+                <p style='text-align: center; margin: 30px 0;'>
+                    <a href=""{verificationUrl}"" 
+                       style='background-color: #4CAF50; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-size: 16px;'>
+                        Verify Email Address
+                    </a>
+                </p>
+                <p>Or copy and paste this link into your browser:</p>
+                <p style='word-break: break-all; color: #666;'>{verificationUrl}</p>
+                <hr style='border: none; border-top: 1px solid #eee; margin: 30px 0;' />
+                <p style='color: #999; font-size: 12px;'>This link will expire in 60 minutes. If you did not register for BlindIdea, please ignore this email.</p>
+            </div>";
+
         await SendEmailAsync(email, "Verify your email - BlindIdea", htmlBody, cancellationToken);
     }
 }

@@ -1,3 +1,4 @@
+using BlindIdea.Application.Dtos.Common;
 using BlindIdea.Application.Dtos.Rating.Requests;
 using BlindIdea.Application.Dtos.Rating.Responses;
 using BlindIdea.Application.Services.Interfaces;
@@ -7,7 +8,7 @@ using System.Security.Claims;
 
 namespace BlindIdea.API.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/ratings")]
 [ApiController]
 [Authorize]
 public class RatingController : ControllerBase
@@ -19,91 +20,104 @@ public class RatingController : ControllerBase
         _ratingService = ratingService;
     }
 
+    private string? GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+    /// <summary>
+    /// Create or update a rating for an idea.
+    /// </summary>
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateRatingRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create([FromBody] CreateRatingRequest request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = GetUserId();
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        try
-        {
-            var rating = await _ratingService.CreateRatingAsync(request, userId);
-            return Created("", rating);
-        }
-        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
-        catch (KeyNotFoundException) { return NotFound(); }
+
+        var rating = await _ratingService.CreateRatingAsync(request, userId);
+        return StatusCode(201, ApiResponse<object>.SuccessResponse(rating!, "Rating submitted successfully", 201));
     }
 
-    [HttpPost("{ideaId:guid}")]
-    public async Task<IActionResult> RateIdea(Guid ideaId, [FromQuery] int value, [FromQuery] string? comment, CancellationToken cancellationToken)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        if (value < 1 || value > 5) return BadRequest("Rating must be between 1 and 5");
-        try
-        {
-            var request = new CreateRatingRequest { IdeaId = ideaId, Value = value, Comment = comment };
-            var rating = await _ratingService.CreateRatingAsync(request, userId);
-            return Ok(rating);
-        }
-        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
-        catch (KeyNotFoundException) { return NotFound(); }
-    }
-
+    /// <summary>
+    /// Get a rating by its ID.
+    /// </summary>
     [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+    [AllowAnonymous]
+    public async Task<IActionResult> GetById(Guid id)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = GetUserId();
         var rating = await _ratingService.GetRatingAsync(id, userId);
-        if (rating == null) return NotFound();
-        return Ok(rating);
+        if (rating == null)
+            return NotFound(ApiResponse<object>.FailureResponse("Rating not found", statusCode: 404));
+
+        return Ok(ApiResponse<object>.SuccessResponse(rating));
     }
 
+    /// <summary>
+    /// Get all ratings for a specific idea with pagination.
+    /// </summary>
     [HttpGet("idea/{ideaId:guid}")]
-    public async Task<IActionResult> GetByIdea(Guid ideaId, [FromQuery] ListRatingsRequest request, CancellationToken cancellationToken)
+    [AllowAnonymous]
+    public async Task<IActionResult> GetByIdea(Guid ideaId, [FromQuery] ListRatingsRequest request)
     {
         request.IdeaId = ideaId;
         var result = await _ratingService.GetIdeaRatingsAsync(request);
-        return Ok(result);
+        return Ok(ApiResponse<object>.SuccessResponse(result));
     }
 
+    /// <summary>
+    /// Get the current user's rating for a specific idea.
+    /// </summary>
     [HttpGet("idea/{ideaId:guid}/user")]
-    public async Task<IActionResult> GetUserRating(Guid ideaId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetUserRating(Guid ideaId)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = GetUserId();
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
         var rating = await _ratingService.GetUserRatingAsync(ideaId, userId);
-        if (rating == null) return NotFound();
-        return Ok(rating);
+        if (rating == null)
+            return NotFound(ApiResponse<object>.FailureResponse("No rating found for this idea", statusCode: 404));
+
+        return Ok(ApiResponse<object>.SuccessResponse(rating));
     }
 
+    /// <summary>
+    /// Update an existing rating. Only the author can update.
+    /// </summary>
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateRatingRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateRatingRequest request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = GetUserId();
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        try
-        {
-            var rating = await _ratingService.UpdateRatingAsync(id, request, userId);
-            if (rating == null) return NotFound();
-            return Ok(rating);
-        }
-        catch (UnauthorizedAccessException) { return Forbid(); }
+
+        var rating = await _ratingService.UpdateRatingAsync(id, request, userId);
+        if (rating == null)
+            return NotFound(ApiResponse<object>.FailureResponse("Rating not found", statusCode: 404));
+
+        return Ok(ApiResponse<object>.SuccessResponse(rating, "Rating updated successfully"));
     }
 
+    /// <summary>
+    /// Delete a rating. Only the author can delete.
+    /// </summary>
     [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Delete(Guid id)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = GetUserId();
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
         var result = await _ratingService.DeleteRatingAsync(id, userId);
-        if (!result) return NotFound();
-        return NoContent();
+        if (!result)
+            return NotFound(ApiResponse<object>.FailureResponse("Rating not found or access denied", statusCode: 404));
+
+        return Ok(ApiResponse<object>.SuccessResponse(new { }, "Rating deleted successfully"));
     }
 
+    /// <summary>
+    /// Get rating statistics for an idea (average, distribution, etc.).
+    /// </summary>
     [HttpGet("idea/{ideaId:guid}/statistics")]
-    public async Task<IActionResult> GetStatistics(Guid ideaId, CancellationToken cancellationToken)
+    [AllowAnonymous]
+    public async Task<IActionResult> GetStatistics(Guid ideaId)
     {
         var stats = await _ratingService.GetRatingStatisticsAsync(ideaId);
-        return Ok(stats ?? new RatingStatisticsResponse());
+        return Ok(ApiResponse<object>.SuccessResponse(stats ?? new RatingStatisticsResponse()));
     }
 }

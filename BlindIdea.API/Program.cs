@@ -8,13 +8,17 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
+// ── Layer registrations ──
 builder.Services.AddApplication(configuration);
 builder.Services.AddInfrastructure(configuration);
 
+// ── Identity ──
 builder.Services.AddIdentity<User, IdentityRole>(options =>
 {
     options.Password.RequireDigit = true;
@@ -23,11 +27,16 @@ builder.Services.AddIdentity<User, IdentityRole>(options =>
     options.Password.RequireNonAlphanumeric = true;
     options.Password.RequiredLength = 8;
     options.User.RequireUniqueEmail = true;
+    options.SignIn.RequireConfirmedEmail = false; // We handle verification ourselves
 })
 .AddEntityFrameworkStores<AppDbContext>()
 .AddDefaultTokenProviders();
 
-var jwtKey = configuration["Jwt:Key"] ?? configuration["Jwt:Secret"] ?? throw new InvalidOperationException("JWT Key/Secret is not configured");
+// ── JWT Authentication ──
+var jwtKey = configuration["Jwt:Key"]
+    ?? configuration["Jwt:Secret"]
+    ?? throw new InvalidOperationException("JWT Key/Secret is not configured");
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -50,18 +59,37 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+// ── CORS ──
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "https://localhost:3000")
+        policy.WithOrigins(
+                "http://localhost:3000",
+                "https://localhost:3000",
+                "http://localhost:5173",
+                "https://localhost:5173",
+                "http://localhost:4200",
+                "https://localhost:4200",
+                "http://localhost:5218",
+                "https://localhost:7024"
+            )
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials();
     });
 });
 
-builder.Services.AddControllers();
+// ── Controllers & JSON ──
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
+
+// ── Logging ──
 builder.Services.AddLogging(config =>
 {
     config.ClearProviders();
@@ -69,13 +97,18 @@ builder.Services.AddLogging(config =>
     if (builder.Environment.IsDevelopment())
         config.AddDebug();
 });
+
+// ── Swagger / OpenAPI ──
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// ── Middleware pipeline ──
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseHttpsRedirection();
+app.UseCors("AllowFrontend");
 
 if (app.Environment.IsDevelopment())
 {
@@ -89,12 +122,11 @@ else
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
-app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
+// ── Database initialization ──
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -102,6 +134,8 @@ using (var scope = app.Services.CreateScope())
     try
     {
         await dbContext.Database.MigrateAsync();
+
+        // Seed default roles
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var roles = new[] { "Admin", "TeamAdmin", "User" };
         foreach (var role in roles)
@@ -109,6 +143,7 @@ using (var scope = app.Services.CreateScope())
             if (!await roleManager.RoleExistsAsync(role))
                 await roleManager.CreateAsync(new IdentityRole(role));
         }
+
         logger.LogInformation("Database initialization completed successfully");
     }
     catch (Exception ex)
@@ -118,4 +153,5 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+Console.WriteLine("Starting BlindIdea API...");
 await app.RunAsync();
