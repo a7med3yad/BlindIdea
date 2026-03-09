@@ -1,3 +1,4 @@
+using BlindIdea.Application.Dtos.Common;
 using BlindIdea.Application.Dtos.Team.Requests;
 using BlindIdea.Application.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -6,7 +7,7 @@ using System.Security.Claims;
 
 namespace BlindIdea.API.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/teams")]
 [ApiController]
 [Authorize]
 public class TeamController : ControllerBase
@@ -18,130 +19,190 @@ public class TeamController : ControllerBase
         _teamService = teamService;
     }
 
+    private string? GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+    /// <summary>
+    /// Create a new team. The authenticated user becomes the admin.
+    /// </summary>
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateTeamRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create([FromBody] CreateTeamRequest request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = GetUserId();
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        try
-        {
-            var team = await _teamService.CreateTeamAsync(request, userId);
-            return CreatedAtAction(nameof(GetById), new { id = team!.Id }, team);
-        }
-        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+
+        var team = await _teamService.CreateTeamAsync(request, userId);
+        return StatusCode(201, ApiResponse<object>.SuccessResponse(team!, "Team created successfully", 201));
     }
 
+    /// <summary>
+    /// Get a team by ID.
+    /// </summary>
     [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+    [AllowAnonymous]
+    public async Task<IActionResult> GetById(Guid id)
     {
         var team = await _teamService.GetTeamAsync(id);
-        if (team == null) return NotFound();
-        return Ok(team);
+        if (team == null)
+            return NotFound(ApiResponse<object>.FailureResponse("Team not found", statusCode: 404));
+
+        return Ok(ApiResponse<object>.SuccessResponse(team));
     }
 
+    /// <summary>
+    /// Get all teams with pagination.
+    /// </summary>
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, CancellationToken cancellationToken = default)
+    [AllowAnonymous]
+    public async Task<IActionResult> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
         var (teams, totalCount) = await _teamService.GetTeamsAsync(pageNumber, pageSize);
-        return Ok(new { teams, totalCount });
+        return Ok(ApiResponse<object>.SuccessResponse(new { teams, totalCount, pageNumber, pageSize }));
     }
 
+    /// <summary>
+    /// Get teams the authenticated user is a member of.
+    /// </summary>
     [HttpGet("my-teams")]
-    public async Task<IActionResult> GetMyTeams(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetMyTeams()
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = GetUserId();
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
         var teams = await _teamService.GetUserTeamsAsync(userId);
-        return Ok(teams);
+        return Ok(ApiResponse<object>.SuccessResponse(teams));
     }
 
+    /// <summary>
+    /// Update a team. Only the team admin can update.
+    /// </summary>
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateTeamRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateTeamRequest request)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = GetUserId();
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        try
-        {
-            var team = await _teamService.UpdateTeamAsync(id, request, userId);
-            if (team == null) return NotFound();
-            return Ok(team);
-        }
-        catch (UnauthorizedAccessException) { return Forbid(); }
+
+        var team = await _teamService.UpdateTeamAsync(id, request, userId);
+        if (team == null)
+            return NotFound(ApiResponse<object>.FailureResponse("Team not found", statusCode: 404));
+
+        return Ok(ApiResponse<object>.SuccessResponse(team, "Team updated successfully"));
     }
 
+    /// <summary>
+    /// Soft-delete a team. Only the team admin can delete.
+    /// </summary>
     [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Delete(Guid id)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = GetUserId();
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
-        var result = await _teamService.DeleteTeamAsync(id, userId);
-        if (!result) return NotFound();
-        return NoContent();
+
+        await _teamService.DeleteTeamAsync(id, userId);
+        return Ok(ApiResponse<object>.SuccessResponse(new { }, "Team deleted successfully"));
     }
 
+    /// <summary>
+    /// Join a team (self-join). The authenticated user joins the team.
+    /// </summary>
+    [HttpPost("{id:guid}/join")]
+    public async Task<IActionResult> JoinTeam(Guid id)
+    {
+        var userId = GetUserId();
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        var result = await _teamService.JoinTeamAsync(id, userId);
+        return Ok(ApiResponse<object>.SuccessResponse(result!, "Joined team successfully"));
+    }
+
+    /// <summary>
+    /// Leave a team. The authenticated user leaves the team. Admin cannot leave.
+    /// </summary>
+    [HttpPost("{id:guid}/leave")]
+    public async Task<IActionResult> LeaveTeam(Guid id)
+    {
+        var userId = GetUserId();
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        await _teamService.LeaveTeamAsync(id, userId);
+        return Ok(ApiResponse<object>.SuccessResponse(new { }, "Left team successfully"));
+    }
+
+    /// <summary>
+    /// Add a member to the team. Only the team admin can add members.
+    /// </summary>
     [HttpPost("{id:guid}/members")]
-    public async Task<IActionResult> AddMember(Guid id, [FromBody] AddTeamMemberRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> AddMember(Guid id, [FromBody] AddTeamMemberRequest request)
     {
-        var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var adminId = GetUserId();
         if (string.IsNullOrEmpty(adminId)) return Unauthorized();
-        try
-        {
-            var result = await _teamService.AddMemberAsync(id, request, adminId);
-            if (result == null) return NotFound();
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
-        catch (KeyNotFoundException) { return NotFound(); }
+
+        var result = await _teamService.AddMemberAsync(id, request, adminId);
+        return Ok(ApiResponse<object>.SuccessResponse(result!, "Member added successfully"));
     }
 
-    [HttpDelete("{id:guid}/members")]
-    public async Task<IActionResult> RemoveMember(Guid id, [FromBody] RemoveTeamMemberRequest request, CancellationToken cancellationToken)
+    /// <summary>
+    /// Remove a member from the team. Admin can remove anyone; members can remove themselves.
+    /// </summary>
+    [HttpDelete("{id:guid}/members/{memberId}")]
+    public async Task<IActionResult> RemoveMember(Guid id, string memberId)
     {
-        var requesterId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var requesterId = GetUserId();
         if (string.IsNullOrEmpty(requesterId)) return Unauthorized();
-        try
-        {
-            var result = await _teamService.RemoveMemberAsync(id, request, requesterId);
-            if (!result) return NotFound();
-            return Ok(new { message = "Member removed successfully" });
-        }
-        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+
+        await _teamService.RemoveMemberAsync(id, memberId, requesterId);
+        return Ok(ApiResponse<object>.SuccessResponse(new { }, "Member removed successfully"));
     }
 
+    /// <summary>
+    /// Get all members of a team.
+    /// </summary>
     [HttpGet("{id:guid}/members")]
-    public async Task<IActionResult> GetMembers(Guid id, CancellationToken cancellationToken)
+    [AllowAnonymous]
+    public async Task<IActionResult> GetMembers(Guid id)
     {
         var result = await _teamService.GetTeamMembersAsync(id);
-        if (result == null) return NotFound();
-        return Ok(result);
+        if (result == null)
+            return NotFound(ApiResponse<object>.FailureResponse("Team not found", statusCode: 404));
+
+        return Ok(ApiResponse<object>.SuccessResponse(result));
     }
 
+    /// <summary>
+    /// Transfer admin role to another team member. Only the current admin can do this.
+    /// </summary>
     [HttpPost("{id:guid}/transfer-admin")]
-    public async Task<IActionResult> TransferAdmin(Guid id, [FromBody] TransferAdminRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> TransferAdmin(Guid id, [FromBody] TransferAdminRequest request)
     {
-        var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var adminId = GetUserId();
         if (string.IsNullOrEmpty(adminId)) return Unauthorized();
-        try
-        {
-            var team = await _teamService.TransferAdminAsync(id, request, adminId);
-            if (team == null) return NotFound();
-            return Ok(team);
-        }
-        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+
+        var team = await _teamService.TransferAdminAsync(id, request, adminId);
+        return Ok(ApiResponse<object>.SuccessResponse(team!, "Admin role transferred successfully"));
     }
 
+    /// <summary>
+    /// Search teams by name or description.
+    /// </summary>
     [HttpGet("search")]
-    public async Task<IActionResult> Search([FromQuery] string? searchTerm, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, CancellationToken cancellationToken = default)
+    [AllowAnonymous]
+    public async Task<IActionResult> Search(
+        [FromQuery] string? searchTerm, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
         var (teams, totalCount) = await _teamService.SearchTeamsAsync(searchTerm ?? "", pageNumber, pageSize);
-        return Ok(new { teams, totalCount });
+        return Ok(ApiResponse<object>.SuccessResponse(new { teams, totalCount, pageNumber, pageSize }));
     }
 
+    /// <summary>
+    /// Get team statistics (member count, idea count, ratings).
+    /// </summary>
     [HttpGet("{id:guid}/statistics")]
-    public async Task<IActionResult> GetStatistics(Guid id, CancellationToken cancellationToken)
+    [AllowAnonymous]
+    public async Task<IActionResult> GetStatistics(Guid id)
     {
         var stats = await _teamService.GetTeamStatisticsAsync(id);
-        if (stats == null) return NotFound();
-        return Ok(stats);
+        if (stats == null)
+            return NotFound(ApiResponse<object>.FailureResponse("Team not found", statusCode: 404));
+
+        return Ok(ApiResponse<object>.SuccessResponse(stats));
     }
 }

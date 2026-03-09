@@ -63,10 +63,11 @@ public class AuthService : IAuthService
         if (!result.Succeeded)
             throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
 
+        // Generate email verification token and send email
         var verificationToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
         try
         {
-            await _emailSender.SendVerificationEmailAsync(user.Email!, verificationToken, cancellationToken);
+            await _emailSender.SendVerificationEmailAsync(user.Id!, user.Email!, verificationToken, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -103,11 +104,10 @@ public class AuthService : IAuthService
             ?? await _userManager.FindByNameAsync(request.EmailOrUserName);
 
         if (user == null) return null;
+        if (user.IsDeleted) return null;
 
         var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: false);
         if (!result.Succeeded) return null;
-
-        if (user.IsDeleted) return null;
 
         var accessToken = _jwtTokenGenerator.GenerateAccessToken(user);
         var refreshToken = _jwtTokenGenerator.GenerateRefreshToken();
@@ -144,9 +144,11 @@ public class AuthService : IAuthService
         var user = await _unitOfWork.Users.GetByIdAsync(refreshTokenEntity.UserId);
         if (user == null || user.IsDeleted) return null;
 
+        // Revoke old refresh token
         refreshTokenEntity.IsRevoked = true;
         _unitOfWork.RefreshTokens.Update(refreshTokenEntity);
 
+        // Generate new tokens
         var newAccessToken = _jwtTokenGenerator.GenerateAccessToken(user);
         var newRefreshToken = _jwtTokenGenerator.GenerateRefreshToken();
 
@@ -173,7 +175,7 @@ public class AuthService : IAuthService
 
     public async Task<bool> VerifyEmailAsync(VerifyEmailRequest request, CancellationToken cancellationToken = default)
     {
-        var user = await _userManager.FindByEmailAsync(request.Email);
+        var user = await _userManager.FindByIdAsync(request.UserId);
         if (user == null) return false;
 
         var result = await _userManager.ConfirmEmailAsync(user, request.Token);
@@ -181,8 +183,7 @@ public class AuthService : IAuthService
 
         user.EmailVerified = true;
         user.UpdatedAt = DateTime.UtcNow;
-        _unitOfWork.Users.Update(user);
-        await _unitOfWork.CommitAsync();
+        await _userManager.UpdateAsync(user);
 
         return true;
     }
@@ -193,7 +194,7 @@ public class AuthService : IAuthService
         if (user == null || user.EmailVerified) return false;
 
         var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-        await _emailSender.SendVerificationEmailAsync(user.Email!, token, cancellationToken);
+        await _emailSender.SendVerificationEmailAsync(user.Id!, user.Email!, token, cancellationToken);
         return true;
     }
 

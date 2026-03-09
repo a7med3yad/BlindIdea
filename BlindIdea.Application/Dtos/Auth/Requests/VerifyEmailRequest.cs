@@ -5,9 +5,8 @@ namespace BlindIdea.Application.Dtos.Auth.Requests;
 public class VerifyEmailRequest
 {
     [Required]
-    public string Token { get; set; } = null!;
+    public string UserId { get; set; } = null!;
 
     [Required]
-    [EmailAddress]
-    public string Email { get; set; } = null!;
+    public string Token { get; set; } = null!;
 }
