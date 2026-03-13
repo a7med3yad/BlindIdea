@@ -12,7 +12,6 @@ public class UnitOfWork : IUnitOfWork, IDisposable
     private IRepository<Idea>? _ideas;
     private IRepository<Rating>? _ratings;
     private IRepository<RefreshToken>? _refreshTokens;
-    private IRepository<TeamMember>? _teamMembers;
     private bool _disposed;
 
     public UnitOfWork(AppDbContext context)
@@ -25,12 +24,10 @@ public class UnitOfWork : IUnitOfWork, IDisposable
     public IRepository<Idea> Ideas => _ideas ??= new Repository<Idea>(_context);
     public IRepository<Rating> Ratings => _ratings ??= new Repository<Rating>(_context);
     public IRepository<RefreshToken> RefreshTokens => _refreshTokens ??= new Repository<RefreshToken>(_context);
-    public IRepository<TeamMember> TeamMembers => _teamMembers ??= new Repository<TeamMember>(_context);
 
     public Task BeginTransactionAsync() => _context.Database.BeginTransactionAsync();
     public Task CommitTransactionAsync() => _context.Database.CommitTransactionAsync();
     public Task RollbackTransactionAsync() => _context.Database.RollbackTransactionAsync();
-    public Task<int> CommitAsync() => _context.SaveChangesAsync();
 
     public Task RollbackAsync()
     {
@@ -50,5 +47,10 @@ public class UnitOfWork : IUnitOfWork, IDisposable
         if (_disposed) return;
         await _context.DisposeAsync();
         _disposed = true;
+    }
+
+    public Task<int> CommitAsync(CancellationToken cancellationToken = default)
+    {
+        return _context.SaveChangesAsync();
     }
 }

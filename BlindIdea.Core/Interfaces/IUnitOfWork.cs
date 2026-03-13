@@ -1,18 +1,22 @@
 using BlindIdea.Core.Entities;
+using System.Linq.Expressions;
 
 namespace BlindIdea.Core.Interfaces;
 
-public interface IUnitOfWork : IAsyncDisposable
+public interface IUnitOfWork : IAsyncDisposable, IDisposable
 {
-    IRepository<User> Users { get; }
-    IRepository<Team> Teams { get; }
-    IRepository<Idea> Ideas { get; }
-    IRepository<Rating> Ratings { get; }
+    // ── Repositories ──
+    IRepository<User>         Users         { get; }
+    IRepository<Team>         Teams         { get; }
+    IRepository<Idea>         Ideas         { get; }
+    IRepository<Rating>       Ratings       { get; }
     IRepository<RefreshToken> RefreshTokens { get; }
-    IRepository<TeamMember> TeamMembers { get; }
 
-    Task<int> CommitAsync();
-    Task RollbackAsync();
+    // ── Persistence ──
+    Task<int> CommitAsync(CancellationToken cancellationToken = default);
+    Task      RollbackAsync();
+
+    // ── Transactions (for multi-step operations that need an explicit transaction) ──
     Task BeginTransactionAsync();
     Task CommitTransactionAsync();
     Task RollbackTransactionAsync();

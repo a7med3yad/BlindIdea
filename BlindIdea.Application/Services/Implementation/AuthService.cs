@@ -5,8 +5,10 @@ using BlindIdea.Core.Common;
 using BlindIdea.Core.Entities;
 using BlindIdea.Core.Interfaces;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Text;
 
 namespace BlindIdea.Application.Services.Implementations;
 
@@ -42,11 +44,11 @@ public class AuthService : IAuthService
     {
         var existingUser = await _userManager.FindByEmailAsync(request.Email);
         if (existingUser != null)
-            throw new InvalidOperationException("User with this email already exists");
+            throw new InvalidOperationException("User with this email already exists.");
 
         existingUser = await _userManager.FindByNameAsync(request.UserName);
         if (existingUser != null)
-            throw new InvalidOperationException("User with this username already exists");
+            throw new InvalidOperationException("User with this username already exists.");
 
         var user = new User
         {
@@ -63,39 +65,20 @@ public class AuthService : IAuthService
         if (!result.Succeeded)
             throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
 
-        // Generate email verification token and send email
-        var verificationToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        // FIX: URL-encode the token so it survives being embedded in a query string link
+        var rawToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));
+
         try
         {
-            await _emailSender.SendVerificationEmailAsync(user.Id!, user.Email!, verificationToken, cancellationToken);
+            await _emailSender.SendVerificationEmailAsync(user.Id!, user.Email!, encodedToken, cancellationToken);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to send verification email to {Email}", user.Email);
         }
 
-        var accessToken = _jwtTokenGenerator.GenerateAccessToken(user);
-        var refreshToken = _jwtTokenGenerator.GenerateRefreshToken();
-
-        var refreshTokenEntity = new RefreshToken
-        {
-            Id = Guid.NewGuid(),
-            UserId = user.Id!,
-            Token = refreshToken,
-            ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryDays),
-            CreatedAt = DateTime.UtcNow
-        };
-
-        await _unitOfWork.RefreshTokens.AddAsync(refreshTokenEntity);
-        await _unitOfWork.CommitAsync();
-
-        return new AuthResponse
-        {
-            AccessToken = accessToken,
-            RefreshToken = refreshToken,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes),
-            User = MapToUserResponse(user)
-        };
+        return await BuildAuthResponseAsync(user);
     }
 
     public async Task<AuthResponse?> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
@@ -103,40 +86,21 @@ public class AuthService : IAuthService
         var user = await _userManager.FindByEmailAsync(request.EmailOrUserName)
             ?? await _userManager.FindByNameAsync(request.EmailOrUserName);
 
-        if (user == null) return null;
-        if (user.IsDeleted) return null;
+        if (user == null || user.IsDeleted) return null;
 
         var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: false);
         if (!result.Succeeded) return null;
 
-        var accessToken = _jwtTokenGenerator.GenerateAccessToken(user);
-        var refreshToken = _jwtTokenGenerator.GenerateRefreshToken();
-
-        var refreshTokenEntity = new RefreshToken
-        {
-            Id = Guid.NewGuid(),
-            UserId = user.Id!,
-            Token = refreshToken,
-            ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryDays),
-            CreatedAt = DateTime.UtcNow
-        };
-
-        await _unitOfWork.RefreshTokens.AddAsync(refreshTokenEntity);
-        await _unitOfWork.CommitAsync();
-
-        return new AuthResponse
-        {
-            AccessToken = accessToken,
-            RefreshToken = refreshToken,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes),
-            User = MapToUserResponse(user)
-        };
+        return await BuildAuthResponseAsync(user, cancellationToken);
     }
 
     public async Task<AuthResponse?> RefreshTokenAsync(RefreshTokenRequest request, CancellationToken cancellationToken = default)
     {
-        var refreshTokenEntity = (await _unitOfWork.RefreshTokens.FindAsync(rt =>
-            rt.Token == request.RefreshToken && !rt.IsRevoked)).FirstOrDefault();
+        // FIX: also filter out expired tokens at query level
+        var tokens = await _unitOfWork.RefreshTokens.FindAsync(rt =>
+            rt.Token == request.RefreshToken && !rt.IsRevoked);
+
+        var refreshTokenEntity = tokens.FirstOrDefault();
 
         if (refreshTokenEntity == null || refreshTokenEntity.ExpiresAt < DateTime.UtcNow)
             return null;
@@ -144,25 +108,23 @@ public class AuthService : IAuthService
         var user = await _unitOfWork.Users.GetByIdAsync(refreshTokenEntity.UserId);
         if (user == null || user.IsDeleted) return null;
 
-        // Revoke old refresh token
+        // Rotate: revoke old, issue new
         refreshTokenEntity.IsRevoked = true;
         _unitOfWork.RefreshTokens.Update(refreshTokenEntity);
 
-        // Generate new tokens
         var newAccessToken = _jwtTokenGenerator.GenerateAccessToken(user);
         var newRefreshToken = _jwtTokenGenerator.GenerateRefreshToken();
 
-        var newRefreshTokenEntity = new RefreshToken
+        await _unitOfWork.RefreshTokens.AddAsync(new RefreshToken
         {
             Id = Guid.NewGuid(),
             UserId = user.Id!,
             Token = newRefreshToken,
             ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryDays),
             CreatedAt = DateTime.UtcNow
-        };
+        });
 
-        await _unitOfWork.RefreshTokens.AddAsync(newRefreshTokenEntity);
-        await _unitOfWork.CommitAsync();
+        await _unitOfWork.CommitAsync(cancellationToken);
 
         return new AuthResponse
         {
@@ -178,7 +140,19 @@ public class AuthService : IAuthService
         var user = await _userManager.FindByIdAsync(request.UserId);
         if (user == null) return false;
 
-        var result = await _userManager.ConfirmEmailAsync(user, request.Token);
+        // FIX: decode the URL-safe Base64 token back to the original token string
+        string originalToken;
+        try
+        {
+            originalToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token));
+        }
+        catch
+        {
+            // Token was not encoded (e.g. called directly via POST with raw token)
+            originalToken = request.Token;
+        }
+
+        var result = await _userManager.ConfirmEmailAsync(user, originalToken);
         if (!result.Succeeded) return false;
 
         user.EmailVerified = true;
@@ -191,18 +165,49 @@ public class AuthService : IAuthService
     public async Task<bool> ResendVerificationEmailAsync(ResendVerificationRequest request, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByEmailAsync(request.Email);
-        if (user == null || user.EmailVerified) return false;
 
-        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-        await _emailSender.SendVerificationEmailAsync(user.Id!, user.Email!, token, cancellationToken);
+        // FIX: also guard against deleted users
+        if (user == null || user.IsDeleted || user.EmailVerified) return false;
+
+        var rawToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));
+
+        await _emailSender.SendVerificationEmailAsync(user.Id!, user.Email!, encodedToken, cancellationToken);
         return true;
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+
+    private async Task<AuthResponse> BuildAuthResponseAsync(User user, CancellationToken ct = default)
+    {
+        var accessToken = _jwtTokenGenerator.GenerateAccessToken(user);
+        var refreshToken = _jwtTokenGenerator.GenerateRefreshToken();
+
+        await _unitOfWork.RefreshTokens.AddAsync(new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id!,
+            Token = refreshToken,
+            ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryDays),
+            CreatedAt = DateTime.UtcNow
+        });
+
+        await _unitOfWork.CommitAsync(ct);
+
+        return new AuthResponse
+        {
+            AccessToken = accessToken,
+            RefreshToken = refreshToken,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes),
+            User = MapToUserResponse(user)
+        };
     }
 
     private static UserResponse MapToUserResponse(User user) => new()
     {
         Id = user.Id!,
-        Email = user.Email ?? "",
-        UserName = user.UserName ?? "",
+        Email = user.Email ?? string.Empty,
+        UserName = user.UserName ?? string.Empty,
         FirstName = user.FirstName,
         LastName = user.LastName,
         FullName = user.FullName,

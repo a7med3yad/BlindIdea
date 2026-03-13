@@ -1,77 +1,103 @@
+using BlindIdea.API.Extensions;
 using BlindIdea.API.Middleware;
 using BlindIdea.Application.Extensions;
+using BlindIdea.Application.Services.Implementations;
+using BlindIdea.Application.Services.Interfaces;
 using BlindIdea.Core.Entities;
+using BlindIdea.Core.Interfaces;
 using BlindIdea.Infrastructure.Extensions;
+using BlindIdea.Infrastructure.Implementation;
 using BlindIdea.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Scalar.AspNetCore;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
-var configuration = builder.Configuration;
+var config = builder.Configuration;
 
-// ── Layer registrations ──
-builder.Services.AddApplication(configuration);
-builder.Services.AddInfrastructure(configuration);
+// ═══════════════════════════════════════════════════════════
+//  1. LAYER REGISTRATIONS
+// ═══════════════════════════════════════════════════════════
+builder.Services.AddApplication(config);
+builder.Services.AddInfrastructure(config);
 
-// ── Identity ──
-builder.Services.AddIdentity<User, IdentityRole>(options =>
-{
-    options.Password.RequireDigit = true;
-    options.Password.RequireLowercase = true;
-    options.Password.RequireUppercase = true;
-    options.Password.RequireNonAlphanumeric = true;
-    options.Password.RequiredLength = 8;
-    options.User.RequireUniqueEmail = true;
-    options.SignIn.RequireConfirmedEmail = false; // We handle verification ourselves
-})
-.AddEntityFrameworkStores<AppDbContext>()
-.AddDefaultTokenProviders();
+// ── Unit of Work ──
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-// ── JWT Authentication ──
-var jwtKey = configuration["Jwt:Key"]
-    ?? configuration["Jwt:Secret"]
-    ?? throw new InvalidOperationException("JWT Key/Secret is not configured");
+// ── Application Services ──
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ITeamService, TeamService>();
+builder.Services.AddScoped<IIdeaService, IdeaService>();
+builder.Services.AddScoped<IRatingService, RatingService>();
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+// ═══════════════════════════════════════════════════════════
+//  2. IDENTITY
+// ═══════════════════════════════════════════════════════════
+builder.Services
+    .AddIdentity<User, IdentityRole>(options =>
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = configuration["Jwt:Issuer"],
-        ValidAudience = configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-        ClockSkew = TimeSpan.Zero
-    };
-});
+        options.Password.RequireDigit = true;
+        options.Password.RequireLowercase = true;
+        options.Password.RequireUppercase = true;
+        options.Password.RequireNonAlphanumeric = true;
+        options.Password.RequiredLength = 8;
+        options.User.RequireUniqueEmail = true;
+        options.SignIn.RequireConfirmedEmail = false; // handled manually in AuthService
+    })
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
+
+// ═══════════════════════════════════════════════════════════
+//  3. JWT AUTHENTICATION
+// ═══════════════════════════════════════════════════════════
+var jwtKey = config["Jwt:Key"]
+    ?? config["Jwt:Secret"]
+    ?? throw new InvalidOperationException("JWT Key/Secret is not configured. Add 'Jwt:Key' to appsettings.");
+
+builder.Services
+    .AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = config["Jwt:Issuer"],
+            ValidAudience = config["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            ClockSkew = TimeSpan.Zero
+        };
+    });
 
 builder.Services.AddAuthorization();
 
-// ── CORS ──
+// ═══════════════════════════════════════════════════════════
+//  4. CORS
+// ═══════════════════════════════════════════════════════════
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:3000",
+        policy
+            .WithOrigins(
+                "http://localhost:3000",  // React (CRA)
                 "https://localhost:3000",
-                "http://localhost:5173",
+                "http://localhost:5173",  // Vite
                 "https://localhost:5173",
-                "http://localhost:4200",
+                "http://localhost:4200",  // Angular
                 "https://localhost:4200",
-                "http://localhost:5218",
+                "http://localhost:5218",  // .NET dev server
                 "https://localhost:7024"
             )
             .AllowAnyMethod()
@@ -80,8 +106,11 @@ builder.Services.AddCors(options =>
     });
 });
 
-// ── Controllers & JSON ──
-builder.Services.AddControllers()
+// ═══════════════════════════════════════════════════════════
+//  5. CONTROLLERS & JSON
+// ═══════════════════════════════════════════════════════════
+builder.Services
+    .AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
@@ -89,33 +118,41 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
-// ── Logging ──
-builder.Services.AddLogging(config =>
+// ═══════════════════════════════════════════════════════════
+//  6. API DOCS — Scalar (replaces Swashbuckle/Swagger UI)
+//     Visit: /scalar/v1
+// ═══════════════════════════════════════════════════════════
+builder.Services.AddScalarDocs();
+
+// ═══════════════════════════════════════════════════════════
+//  7. LOGGING
+// ═══════════════════════════════════════════════════════════
+builder.Services.AddLogging(logging =>
 {
-    config.ClearProviders();
-    config.AddConsole();
+    logging.ClearProviders();
+    logging.AddConsole();
     if (builder.Environment.IsDevelopment())
-        config.AddDebug();
+        logging.AddDebug();
 });
 
-// ── Swagger / OpenAPI ──
-builder.Services.AddOpenApi();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
+// ───────────────────────────────────────────────────────────
 var app = builder.Build();
+// ───────────────────────────────────────────────────────────
 
-// ── Middleware pipeline ──
-app.UseMiddleware<ExceptionHandlingMiddleware>();
+// ═══════════════════════════════════════════════════════════
+//  8. MIDDLEWARE PIPELINE
+//     Order matters — do not rearrange without good reason.
+// ═══════════════════════════════════════════════════════════
+app.UseMiddleware<ExceptionHandlingMiddleware>(); // must be first to catch all errors
+
 app.UseHttpsRedirection();
-app.UseCors("AllowFrontend");
+app.UseCors("AllowFrontend");                     // before auth so pre-flight OPTIONS works
 
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
-    app.MapOpenApi();
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.MapOpenApi();                             // serves /openapi/v1.json
+    app.MapScalarApiReference();                  // serves /scalar/v1
 }
 else
 {
@@ -126,17 +163,26 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-// ── Database initialization ──
-using (var scope = app.Services.CreateScope())
+// ═══════════════════════════════════════════════════════════
+//  9. DATABASE INITIALISATION  (runs once on startup)
+// ═══════════════════════════════════════════════════════════
+await InitialiseDatabaseAsync(app);
+
+Console.WriteLine("BlindIdea API is running.");
+await app.RunAsync();
+
+// ── Local function keeps the startup block clean ───────────
+static async Task InitialiseDatabaseAsync(WebApplication app)
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
     try
     {
-        await dbContext.Database.MigrateAsync();
+        await db.Database.MigrateAsync();
 
-        // Seed default roles
-        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var roles = new[] { "Admin", "TeamAdmin", "User" };
         foreach (var role in roles)
         {
@@ -144,14 +190,11 @@ using (var scope = app.Services.CreateScope())
                 await roleManager.CreateAsync(new IdentityRole(role));
         }
 
-        logger.LogInformation("Database initialization completed successfully");
+        logger.LogInformation("Database initialised successfully.");
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Failed to initialize database");
+        logger.LogError(ex, "Database initialisation failed.");
         throw;
     }
 }
-
-Console.WriteLine("Starting BlindIdea API...");
-await app.RunAsync();
