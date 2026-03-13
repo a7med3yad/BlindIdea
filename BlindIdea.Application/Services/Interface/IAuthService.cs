@@ -1,4 +1,4 @@
-using BlindIdea.Application.Dtos.Auth.Requests;
+﻿using BlindIdea.Application.Dtos.Auth.Requests;
 using BlindIdea.Application.Dtos.Auth.Responses;
 
 namespace BlindIdea.Application.Services.Interfaces;
