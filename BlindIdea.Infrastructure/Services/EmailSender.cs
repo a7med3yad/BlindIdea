@@ -22,19 +22,56 @@ public class EmailSender : IEmailSender
     {
         try
         {
-            using var client = new SmtpClient(_options.SmtpServer, _options.Port)
+            _logger.LogInformation(
+                "Attempting to send email to {To} via {SmtpServer}:{Port} (SSL={EnableSsl})",
+                to, _options.SmtpServer, _options.Port, _options.EnableSsl);
+
+            using var client = new SmtpClient
             {
+                Host = _options.SmtpServer ?? throw new InvalidOperationException("SMTP server is not configured."),
+                Port = _options.Port,
                 EnableSsl = _options.EnableSsl,
-                Credentials = new NetworkCredential(_options.Username, _options.Password)
+                DeliveryMethod = SmtpDeliveryMethod.Network,
+
+                // CRITICAL: UseDefaultCredentials MUST be set to false BEFORE assigning Credentials.
+                // If left as true (the default), the NetworkCredential is silently ignored and the
+                // SMTP handshake falls back to NTLM/Negotiate, which Outlook 365 rejects with:
+                //   "535 5.7.139 Authentication unsuccessful, basic authentication is disabled."
+                UseDefaultCredentials = false,
+                Credentials = new NetworkCredential(_options.Username, _options.Password),
+
+                // Outlook 365 SMTP requires STARTTLS.  Setting TargetName tells .NET to use the
+                // STARTTLS service-principal-name so the TLS upgrade succeeds with App Passwords.
+                TargetName = "STARTTLS/smtp.office365.com",
+                Timeout = 30_000 // 30 seconds
             };
 
-            var message = new MailMessage(_options.From ?? "", to, subject, htmlBody) { IsBodyHtml = true };
+            using var message = new MailMessage
+            {
+                From = new MailAddress(_options.From ?? _options.Username
+                    ?? throw new InvalidOperationException("Email 'From' address is not configured.")),
+                Subject = subject,
+                Body = htmlBody,
+                IsBodyHtml = true,
+            };
+            message.To.Add(to);
+
             await client.SendMailAsync(message, cancellationToken);
             _logger.LogInformation("Email sent successfully to {To}", to);
         }
+        catch (SmtpException ex)
+        {
+            _logger.LogError(ex,
+                "SMTP error sending email to {To}. StatusCode={StatusCode}, Message={Message}",
+                to, ex.StatusCode, ex.Message);
+            throw new InvalidOperationException(
+                $"Failed to send email to {to}. SMTP status: {ex.StatusCode}. " +
+                "If using Outlook, ensure you are using an App Password (not your regular password) " +
+                "and that SMTP AUTH is enabled for the mailbox.", ex);
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send email to {To}", to);
+            _logger.LogError(ex, "Unexpected error sending email to {To}", to);
             throw;
         }
     }
@@ -51,7 +88,7 @@ public class EmailSender : IEmailSender
                 <h2 style='color: #333;'>Welcome to BlindIdea!</h2>
                 <p>Thank you for registering. Please verify your email address by clicking the button below:</p>
                 <p style='text-align: center; margin: 30px 0;'>
-                    <a href=""{verificationUrl}"" 
+                    <a href='{verificationUrl}' 
                        style='background-color: #4CAF50; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-size: 16px;'>
                         Verify Email Address
                     </a>
@@ -62,6 +99,7 @@ public class EmailSender : IEmailSender
                 <p style='color: #999; font-size: 12px;'>This link will expire in 60 minutes. If you did not register for BlindIdea, please ignore this email.</p>
             </div>";
 
+        _logger.LogInformation("Sending verification email to {Email} for user {UserId}", email, userId);
         await SendEmailAsync(email, "Verify your email - BlindIdea", htmlBody, cancellationToken);
     }
 }

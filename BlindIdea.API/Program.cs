@@ -1,12 +1,8 @@
 using BlindIdea.API.Extensions;
 using BlindIdea.API.Middleware;
 using BlindIdea.Application.Extensions;
-using BlindIdea.Application.Services.Implementations;
-using BlindIdea.Application.Services.Interfaces;
 using BlindIdea.Core.Entities;
-using BlindIdea.Core.Interfaces;
 using BlindIdea.Infrastructure.Extensions;
-using BlindIdea.Infrastructure.Implementation;
 using BlindIdea.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -25,15 +21,6 @@ var config = builder.Configuration;
 // ═══════════════════════════════════════════════════════════
 builder.Services.AddApplication(config);
 builder.Services.AddInfrastructure(config);
-
-// ── Unit of Work ──
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-
-// ── Application Services ──
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<ITeamService, TeamService>();
-builder.Services.AddScoped<IIdeaService, IdeaService>();
-builder.Services.AddScoped<IRatingService, RatingService>();
 
 // ═══════════════════════════════════════════════════════════
 //  2. IDENTITY

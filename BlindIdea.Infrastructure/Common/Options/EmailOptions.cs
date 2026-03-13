@@ -9,5 +9,5 @@ public class EmailOptions
     public string? Username { get; set; }
     public string? Password { get; set; }
     public bool EnableSsl { get; set; } = true;
-    public string AppBaseUrl { get; set; } = "http://localhost:5000";
+    public string AppBaseUrl { get; set; } = "https://localhost:7024";
 }
