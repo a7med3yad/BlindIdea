@@ -1,4 +1,4 @@
-using BlindIdea.Application.Dtos.Common;
+﻿using BlindIdea.Application.Dtos.Common;
 using BlindIdea.Application.Dtos.Teams.Requests;
 using BlindIdea.Application.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -24,18 +24,17 @@ public class TeamsController : ControllerBase
         ?? throw new UnauthorizedAccessException("User identity not found.");
 
     /// <summary>Get all teams the current user belongs to or administers.</summary>
-    [HttpGet]
-    [ProducesResponseType(typeof(ApiResponse<object>), 200)]
-    public async Task<IActionResult> Greeting()
-    {
-        return Ok(new
+        [HttpGet]
+        public async Task<IActionResult> Greeting()
         {
-            message = "Welcome! I'm Ahmed Ayad ??",
-            description = "Thanks for visiting my API. Everything is up and running!",
-            status = "online",
-            timestamp = DateTime.UtcNow
-        });
-    }
+            return Ok(new
+            {
+                message = "Welcome! I'm Ahmed Ayad 👋",
+                description = "Thanks for visiting my API. Everything is up and running!",
+                status = "online",
+                timestamp = DateTime.UtcNow
+            });
+        }
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<object>), 200)]
     public async Task<IActionResult> GetMyTeams(CancellationToken ct)
