@@ -34,7 +34,7 @@ builder.Services
         options.Password.RequireNonAlphanumeric = true;
         options.Password.RequiredLength = 8;
         options.User.RequireUniqueEmail = true;
-        options.SignIn.RequireConfirmedEmail = false; // handled manually in AuthService
+        options.SignIn.RequireConfirmedEmail = false;
     })
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
@@ -78,14 +78,16 @@ builder.Services.AddCors(options =>
     {
         policy
             .WithOrigins(
-                "http://localhost:3000",  // React (CRA)
+                "http://localhost:3000",
                 "https://localhost:3000",
-                "http://localhost:5173",  // Vite
+                "http://localhost:5173",
                 "https://localhost:5173",
-                "http://localhost:4200",  // Angular
+                "http://localhost:4200",
                 "https://localhost:4200",
-                "http://localhost:5218",  // .NET dev server
-                "https://localhost:7024"
+                "http://localhost:5218",
+                "https://localhost:7024",
+                "http://44.213.127.98:5000",  // ✅ EC2 public IP
+                "http://44.213.127.98"
             )
             .AllowAnyMethod()
             .AllowAnyHeader()
@@ -106,7 +108,7 @@ builder.Services
     });
 
 // ═══════════════════════════════════════════════════════════
-//  6. API DOCS — Scalar (replaces Swashbuckle/Swagger UI)
+//  6. API DOCS — Scalar (always available)
 //     Visit: /scalar/v1
 // ═══════════════════════════════════════════════════════════
 builder.Services.AddScalarDocs();
@@ -128,37 +130,40 @@ var app = builder.Build();
 
 // ═══════════════════════════════════════════════════════════
 //  8. MIDDLEWARE PIPELINE
-//     Order matters — do not rearrange without good reason.
 // ═══════════════════════════════════════════════════════════
-app.UseMiddleware<ExceptionHandlingMiddleware>(); // must be first to catch all errors
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-app.UseHttpsRedirection();
-app.UseCors("AllowFrontend");                     // before auth so pre-flight OPTIONS works
+// ✅ Removed UseHttpsRedirection — no SSL cert configured
+// app.UseHttpsRedirection();
+
+app.UseCors("AllowFrontend");
 
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
-    app.MapOpenApi();                             // serves /openapi/v1.json
-    app.MapScalarApiReference();                  // serves /scalar/v1
 }
 else
 {
-    app.UseHsts();
+    // ✅ Removed UseHsts — no SSL cert configured
+    // app.UseHsts();
 }
+
+// ✅ Scalar always visible in all environments
+app.MapOpenApi();                   // serves /openapi/v1.json
+app.MapScalarApiReference();        // serves /scalar/v1
 
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
 // ═══════════════════════════════════════════════════════════
-//  9. DATABASE INITIALISATION  (runs once on startup)
+//  9. DATABASE INITIALISATION
 // ═══════════════════════════════════════════════════════════
 await InitialiseDatabaseAsync(app);
 
 Console.WriteLine("BlindIdea API is running.");
 await app.RunAsync();
 
-// ── Local function keeps the startup block clean ───────────
 static async Task InitialiseDatabaseAsync(WebApplication app)
 {
     using var scope = app.Services.CreateScope();
@@ -169,14 +174,12 @@ static async Task InitialiseDatabaseAsync(WebApplication app)
     try
     {
         await db.Database.MigrateAsync();
-
         var roles = new[] { "Admin", "TeamAdmin", "User" };
         foreach (var role in roles)
         {
             if (!await roleManager.RoleExistsAsync(role))
                 await roleManager.CreateAsync(new IdentityRole(role));
         }
-
         logger.LogInformation("Database initialised successfully.");
     }
     catch (Exception ex)
