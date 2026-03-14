@@ -18,24 +18,13 @@ jobs:
       with:
         dotnet-version: '10.0.104'
 
-    - name: Publish API (includes all layers)
+    - name: Publish API
       run: |
         dotnet publish BlindIdea.API/BlindIdea.API.csproj \
           -c Release \
           -r linux-x64 \
           --self-contained false \
           -o ./publish
-
-    - name: Backup production config on EC2
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          sudo mkdir -p /root/blindidea-config
-          sudo cp /root/BlindIdea/BlindIdea.API/publish/appsettings.Production.json \
-             /root/blindidea-config/appsettings.Production.json || true
 
     - name: Copy files to EC2
       uses: appleboy/scp-action@v0.1.7
@@ -44,20 +33,18 @@ jobs:
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_SSH_KEY }}
         source: "./publish/*"
-        target: "/home/ec2-user/publish_temp"
+        target: "/home/ec2-user/blindidea/publish"
+        strip_components: 1
         rm: false
 
-    - name: Move files and restart service
+    - name: Restore config and restart service
       uses: appleboy/ssh-action@v1.0.0
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          sudo rm -rf /root/BlindIdea/BlindIdea.API/publish/*
-          sudo cp -r /home/ec2-user/publish_temp/publish/* \
-            /root/BlindIdea/BlindIdea.API/publish/
-          sudo cp /root/blindidea-config/appsettings.Production.json \
-            /root/BlindIdea/BlindIdea.API/publish/appsettings.Production.json
+          cp /home/ec2-user/blindidea-config/appsettings.Production.json \
+            /home/ec2-user/blindidea/publish/appsettings.Production.json
           sudo systemctl restart blindidea
           sudo systemctl status blindidea
