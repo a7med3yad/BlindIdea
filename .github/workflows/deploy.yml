@@ -54,7 +54,8 @@ jobs:
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          sudo cp -r /home/ec2-user/publish_temp/publish/* \
+          sudo rm -rf /root/BlindIdea/BlindIdea.API/publish/*
+          sudo cp -r /home/ec2-user/publish_temp/* \
             /root/BlindIdea/BlindIdea.API/publish/
           sudo cp /root/blindidea-config/appsettings.Production.json \
             /root/BlindIdea/BlindIdea.API/publish/appsettings.Production.json
