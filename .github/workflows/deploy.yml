@@ -35,7 +35,7 @@ jobs:
         script: |
           sudo mkdir -p /root/blindidea-config
           sudo cp /root/BlindIdea/BlindIdea.API/publish/appsettings.Production.json \
-             /root/blindidea-config/appsettings.Production.json
+             /root/blindidea-config/appsettings.Production.json || true
 
     - name: Copy files to EC2
       uses: appleboy/scp-action@v0.1.7
