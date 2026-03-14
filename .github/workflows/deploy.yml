@@ -43,10 +43,9 @@ jobs:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_SSH_KEY }}
-        source: "./publish/"
-        target: "/root/BlindIdea/BlindIdea.API/"
-        strip_components: 1
-        rm: true
+        source: "./publish/*"
+        target: "/home/ec2-user/publish_temp"
+        rm: false
 
     - name: Move files and restart service
       uses: appleboy/ssh-action@v1.0.0
@@ -61,4 +60,3 @@ jobs:
           sudo cp /root/blindidea-config/appsettings.Production.json \
             /root/BlindIdea/BlindIdea.API/publish/appsettings.Production.json
           sudo systemctl restart blindidea
-          sudo systemctl status blindidea
