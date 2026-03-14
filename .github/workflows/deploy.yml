@@ -45,6 +45,7 @@ jobs:
         key: ${{ secrets.EC2_SSH_KEY }}
         source: "./publish/*"
         target: "/home/ec2-user/publish_temp"
+        strip_components: 1
         rm: true
 
     - name: Move files and restart service
@@ -55,7 +56,7 @@ jobs:
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
           sudo rm -rf /root/BlindIdea/BlindIdea.API/publish/*
-          sudo cp -r /home/ec2-user/publish_temp/* \
+          sudo cp -r /home/ec2-user/publish_temp/publish/* \
             /root/BlindIdea/BlindIdea.API/publish/
           sudo cp /root/blindidea-config/appsettings.Production.json \
             /root/BlindIdea/BlindIdea.API/publish/appsettings.Production.json
