@@ -26,6 +26,18 @@ public class TeamsController : ControllerBase
     /// <summary>Get all teams the current user belongs to or administers.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<object>), 200)]
+    public async Task<IActionResult> Greeting()
+    {
+        return Ok(new
+        {
+            message = "Welcome! I'm Ahmed Ayad ??",
+            description = "Thanks for visiting my API. Everything is up and running!",
+            status = "online",
+            timestamp = DateTime.UtcNow
+        });
+    }
+    [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<object>), 200)]
     public async Task<IActionResult> GetMyTeams(CancellationToken ct)
     {
         var teams = await _teamService.GetUserTeamsAsync(CurrentUserId, ct);
