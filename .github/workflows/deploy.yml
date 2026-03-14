@@ -33,8 +33,8 @@ jobs:
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          mkdir -p /root/blindidea-config
-          cp /root/BlindIdea/BlindIdea.API/publish/appsettings.Production.json \
+          sudo mkdir -p /root/blindidea-config
+          sudo cp /root/BlindIdea/BlindIdea.API/publish/appsettings.Production.json \
              /root/blindidea-config/appsettings.Production.json
 
     - name: Copy files to EC2
@@ -44,17 +44,19 @@ jobs:
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_SSH_KEY }}
         source: "./publish/*"
-        target: "/root/BlindIdea/BlindIdea.API/publish"
+        target: "/home/ec2-user/publish_temp"
         rm: true
 
-    - name: Restore config and restart service
+    - name: Move files and restart service
       uses: appleboy/ssh-action@v1.0.0
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          cp /root/blindidea-config/appsettings.Production.json \
-             /root/BlindIdea/BlindIdea.API/publish/appsettings.Production.json
-          systemctl restart blindidea
-          systemctl status blindidea
+          sudo cp -r /home/ec2-user/publish_temp/publish/* \
+            /root/BlindIdea/BlindIdea.API/publish/
+          sudo cp /root/blindidea-config/appsettings.Production.json \
+            /root/BlindIdea/BlindIdea.API/publish/appsettings.Production.json
+          sudo systemctl restart blindidea
+          sudo systemctl status blindidea
