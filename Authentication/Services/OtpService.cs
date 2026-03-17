@@ -1,7 +1,11 @@
-﻿namespace BlindIdea.API.Services
+﻿using BlindIdea.API.Entities;
+
+namespace BlindIdea.API.Services
 {
     public class OtpService
     {
+        private const int MaxOtpRequests = 3;       
+        private const int WindowMinutes = 10;
         public string GenerateOtp()
         {
             var random = new Random();
@@ -14,6 +18,23 @@
         public bool IsExpired(DateTime? expiration)
         {
             return expiration == null || DateTime.Now > expiration;
+        }
+
+        public bool CanRequestOtp(ApplicationUser user)
+        {
+            var now = DateTime.UtcNow;
+            if(user.OtpRequestWindowStart==null||
+                now > user.OtpRequestWindowStart.Value.AddMinutes(WindowMinutes))
+            {
+                user.OtpRequestCount = 0;
+                user.OtpRequestWindowStart = now;
+            }
+            if(user.OtpRequestCount >= MaxOtpRequests)
+            {
+                return false;
+            }
+            user.OtpRequestCount++;
+            return true;
         }
     }
 }

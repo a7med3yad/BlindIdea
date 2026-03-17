@@ -1,15 +1,18 @@
 ﻿using BlindIdea.API.Core;
 using BlindIdea.API.Entities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace BlindIdea.API.Services
 {
     public class TokenService
     {
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _configuration;
         private readonly AppDbContext _context;
         public TokenService(IConfiguration configuration, AppDbContext context)
@@ -18,13 +21,17 @@ namespace BlindIdea.API.Services
             _context = context;
 
         }
-        public string CreateAccessToken(ApplicationUser user)
+        public async Task<string> CreateAccessToken(ApplicationUser user)
         {
+            var roles  = await _userManager.GetRolesAsync(user);
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
                 new Claim(ClaimTypes.Name, user.UserName)
             };
+
+            foreach (var role in roles)
+                claims = claims.Append(new Claim(ClaimTypes.Role, role)).ToArray();
 
             var key = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(_configuration["Jwt:Key"])

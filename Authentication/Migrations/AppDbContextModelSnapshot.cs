@@ -61,6 +61,12 @@ namespace BlindIdea.API.Migrations
                     b.Property<DateTime?>("OtpExpiration")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("OtpRequestCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("OtpRequestWindowStart")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("PasswordHash")
                         .HasColumnType("nvarchar(max)");
 

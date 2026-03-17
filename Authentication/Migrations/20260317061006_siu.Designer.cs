@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BlindIdea.API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260316095707_siuuu")]
-    partial class siuuu
+    [Migration("20260317061006_siu")]
+    partial class siu
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -62,6 +62,12 @@ namespace BlindIdea.API.Migrations
                         .HasColumnType("nvarchar(256)");
 
                     b.Property<DateTime?>("OtpExpiration")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("OtpRequestCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("OtpRequestWindowStart")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("PasswordHash")

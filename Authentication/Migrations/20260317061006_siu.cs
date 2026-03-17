@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace BlindIdea.API.Migrations
 {
     /// <inheritdoc />
-    public partial class siuuu : Migration
+    public partial class siu : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -32,6 +32,8 @@ namespace BlindIdea.API.Migrations
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     IsVerified = table.Column<bool>(type: "bit", nullable: false),
                     OtpExpiration = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    OtpRequestCount = table.Column<int>(type: "int", nullable: false),
+                    OtpRequestWindowStart = table.Column<DateTime>(type: "datetime2", nullable: true),
                     UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),

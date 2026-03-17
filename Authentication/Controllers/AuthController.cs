@@ -3,12 +3,13 @@ using BlindIdea.API.Dtos;
 using BlindIdea.API.Entities;
 using BlindIdea.API.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication.Google;
+using AspNet.Security.OAuth.GitHub;
+using Microsoft.AspNetCore.Authentication;
 
 namespace Authentication.Controllers
 {
@@ -21,27 +22,68 @@ namespace Authentication.Controllers
         private readonly TokenService _tokenService;
         private readonly EmailService _emailService;
         private readonly AppDbContext _context;
+        private readonly OAuthService _oAuthService;
+        private readonly RoleManager<IdentityRole> _roleManager;
         public AuthController(
             UserManager<ApplicationUser> userManager,
             OtpService otpService,
             TokenService tokenService,
             EmailService emailService,
-            AppDbContext context)
+            AppDbContext context,
+            RoleManager<IdentityRole> roleManager,
+            OAuthService oAuthService
+            )
         {
             _userManager = userManager;
             _otpService = otpService;
             _tokenService = tokenService;
             _emailService = emailService;
             _context = context;
+            _roleManager = roleManager;
+            _oAuthService = oAuthService;
+        }
+        // ✅ Only Admin
+        [Authorize(Roles = "Admin")]
+        [HttpGet("admin-panel")]
+        public IActionResult AdminPanel()
+        {
+            return Ok("Welcome Admin");
         }
 
-        [Authorize]
+        // ✅ Only User
+        [Authorize(Roles = "User")]
+        [HttpGet("user-dashboard")]
+        public IActionResult UserDashboard()
+        {
+            return Ok("Welcome User");
+        }
+
+        // ✅ Both Admin and User
+        [Authorize(Roles = "Admin,User")]
         [HttpGet("profile")]
         public IActionResult Profile()
         {
-            return Ok("Authorized");
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
+            return Ok(new { email, role });
         }
 
+        [Authorize(Roles = "Admin")]
+        [HttpPost("assign-role")]
+        public async Task<IActionResult> AssignRole(string email, string role)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+
+            if (user == null)
+                return BadRequest("User not found");
+
+            if (!await _roleManager.RoleExistsAsync(role))
+                return BadRequest("Role does not exist");
+
+            await _userManager.AddToRoleAsync(user, role);
+
+            return Ok($"Role {role} assigned to {email}");
+        }
 
         [HttpPost("register")]
         public async Task<IActionResult> register(RegisterDto dto)
@@ -56,6 +98,13 @@ namespace Authentication.Controllers
             {
                 return BadRequest(result.Errors);
             }
+            await _userManager.AddToRoleAsync(user, "User");
+
+            if (!_otpService.CanRequestOtp(user))
+            {
+                return BadRequest("Too many OTP requests. Please wait 10 minutes.");
+            }
+
             var otp = _otpService.GenerateOtp();
 
             user.OtpExpiration = _otpService.GetExpiration();
@@ -85,7 +134,7 @@ namespace Authentication.Controllers
                 return BadRequest("Invalid OTP");
             }
 
-            user.IsVerified= true;
+            user.IsVerified = true;
 
             user.OtpExpiration = null;
 
@@ -95,7 +144,7 @@ namespace Authentication.Controllers
 
             return Ok(new AuthResponseDto
             {
-                AccessToken = _tokenService.CreateAccessToken(user),
+                AccessToken = await _tokenService.CreateAccessToken(user),
                 RefreshToken = (await _tokenService.CreateRefreshToken(user)).Token
             });
         }
@@ -104,13 +153,13 @@ namespace Authentication.Controllers
         public async Task<IActionResult> login(RegisterDto dto)
         {
             var user = await _userManager.FindByEmailAsync(dto.Email);
-            if (user==null) return Unauthorized("User not register");
+            if (user == null) return Unauthorized("User not register");
             var valid = await _userManager.CheckPasswordAsync(user, dto.Password);
             if (!valid) return Unauthorized("Invalid password");
 
             return Ok(new AuthResponseDto
             {
-                AccessToken = _tokenService.CreateAccessToken(user),
+                AccessToken = await _tokenService.CreateAccessToken(user),
                 RefreshToken = (await _tokenService.CreateRefreshToken(user)).Token
             });
         }
@@ -120,8 +169,16 @@ namespace Authentication.Controllers
         public async Task<IActionResult> forgetpassword(string email)
         {
             var user = await _userManager.FindByEmailAsync(email);
-            if (user == null) return Unauthorized();
+            if (user == null)
+                return BadRequest("User not found");
+
+
+            if (!_otpService.CanRequestOtp(user))
+                return BadRequest("Too many OTP requests. Please wait 10 minutes.");
+
             var otp = _otpService.GenerateOtp();
+            user.OtpExpiration = _otpService.GetExpiration();
+            await _userManager.UpdateAsync(user);
             await _userManager.SetAuthenticationTokenAsync(
                 user, "AuthApi", "ResetOTP", otp
             );
@@ -144,7 +201,7 @@ namespace Authentication.Controllers
             await _context.SaveChangesAsync();
             return Ok(new AuthResponseDto
             {
-                AccessToken = _tokenService.CreateAccessToken(storedToken.User),
+                AccessToken = await _tokenService.CreateAccessToken(storedToken.User),
                 RefreshToken = (await _tokenService.CreateRefreshToken(storedToken.User)).Token
             });
         }
@@ -162,7 +219,7 @@ namespace Authentication.Controllers
 
             return Ok(new AuthResponseDto
             {
-                AccessToken = _tokenService.CreateAccessToken(user),
+                AccessToken = await _tokenService.CreateAccessToken(user),
                 RefreshToken = (await _tokenService.CreateRefreshToken(user)).Token
             });
         }
@@ -184,6 +241,65 @@ namespace Authentication.Controllers
             return Ok("Password changed successfully");
         }
 
+        [HttpGet("login/google")]
+        public IActionResult GoogleLogin()
+        {
+            var props = new AuthenticationProperties
+            {
+                RedirectUri = Url.Action("GoogleCallback")
+            };
+            return Challenge(props, GoogleDefaults.AuthenticationScheme);
+        }
+
+        [HttpGet("google-callback")]
+        public async Task<IActionResult> GoogleCallback()
+        {
+            var result = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);  
+
+            if (!result.Succeeded)
+                return BadRequest("Google authentication failed");
+
+            try
+            {
+                var response = await _oAuthService.HandleOAuthLogin(result);
+                return Ok(response); // ✅ Ok() lives here in the controller
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message); // ✅ BadRequest() lives here too
+            }
+        }
+
+
+
+        [HttpGet("login/github")]
+        public IActionResult GitHubLogin()
+        {
+            var props = new AuthenticationProperties
+            {
+                RedirectUri = Url.Action("GithubCallback")
+            };
+            return Challenge(props, GitHubAuthenticationDefaults.AuthenticationScheme);
+        }
+
+        [HttpGet("github-callback")]
+        public async Task<IActionResult> GithubCallback()
+        {
+            var result = await HttpContext.AuthenticateAsync(GitHubAuthenticationDefaults.AuthenticationScheme);
+
+            if (!result.Succeeded)
+                return BadRequest("Github authentication failed");
+
+            try
+            {
+                var response = await _oAuthService.HandleOAuthLogin(result);
+                return Ok(response); // ✅ Ok() lives here in the controller
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message); // ✅ BadRequest() lives here too
+            }
+        }
 
 
     }
