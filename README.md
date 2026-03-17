@@ -1,520 +1,564 @@
-# BlindIdea.API
-# BlindIdea Authentication System - Complete Implementation Guide
+# 💡 IdeaVault — Backend API
 
-## Overview
-
-This document describes the production-grade JWT-based authentication system implemented for the BlindIdea API. The system includes:
-
-- ✅ User registration with email verification
-- ✅ Login with JWT access tokens (15 minutes)
-- ✅ Refresh token system with token rotation (7 days)
-- ✅ Email verification with 24-hour tokens
-- ✅ Logout and token revocation (single device & all devices)
-- ✅ Comprehensive audit logging
-- ✅ Security breach detection (token reuse)
-- ✅ Hash-based token storage (SHA-256)
+> **Stack:** .NET 10 · Four-Layer Architecture (API · Core · Application · Infrastructure)
 
 ---
 
-## Architecture Overview
+## Table of Contents
 
-### Core Components
-
-#### 1. **Entities** (`BlindIdea.Core/Entities/`)
-- **User** - ASP.NET Identity user with soft delete and email verification
-- **RefreshToken** - Long-lived tokens for obtaining new access tokens
-  - Fields: Id, TokenHash (SHA-256), JwtId, UserId, ExpiresAt, CreatedAt, RevokedAt, ReplacedByTokenId, IsUsed
-  - Implements token rotation and security breach detection
-- **EmailVerificationToken** - Short-lived tokens for email verification
-  - Fields: Id, TokenHash (SHA-256), UserId, ExpiresAt, CreatedAt, VerifiedAt
-
-#### 2. **Services** (`BlindIdea.Application/Services/`)
-- **IAuthService / AuthService** - Core authentication logic
-  - RegisterAsync() → Creates user with email verification
-  - LoginAsync() → Authenticates and returns tokens
-  - RefreshTokenAsync() → Token rotation with breach detection
-  - LogoutAsync() → Revoke single refresh token
-  - RevokeAllTokensAsync() → Logout from all devices
-  - VerifyEmailAsync() → Email confirmation
-  - ResendVerificationEmailAsync() → Rate-limited resend
-  - SendVerificationEmailAsync() → Helper for email sending
-
-- **IJwtService / JwtService** - Token generation
-  - CreateAccessToken() → 15-minute JWT with JTI claim
-  - GenerateRefreshToken() → 32-byte cryptographically secure token
-  - HashToken() → SHA-256 hashing for storage
-  - ExtractJwtId() → Extract JTI claim from token
-
-- **IEmailService / EmailService** - Email delivery
-  - SendEmailAsync() → SMTP-based email sending
-  - Retry logic with 3 attempts
-  - Comprehensive error logging
-
-#### 3. **Controllers** (`BlindIdea.API/Controllers/`)
-- **AuthController** - REST endpoints
-  - POST /api/auth/register → User registration
-  - POST /api/auth/login → Authentication
-  - POST /api/auth/refresh → Token refresh
-  - POST /api/auth/logout → Single device logout
-  - POST /api/auth/revoke-all → All devices logout (requires auth)
-  - GET /api/auth/verify-email → Email verification
-  - POST /api/auth/resend-verification → Resend verification email
-
-#### 4. **DTOs** (`BlindIdea.Application/Dtos/`)
-- **AuthResponseDto** - Token response with user info and expiry times
-- **LoginDto** - Login credentials
-- **RegisterDto** - Registration data with password confirmation
-- **RefreshTokenRequestDto** - Refresh token request
-- **ResendVerificationEmailDto** - Email resend request
-- **UserDto** - User information in responses
+- [💡 IdeaVault — Backend API](#-ideavault--backend-api)
+  - [Table of Contents](#table-of-contents)
+  - [Project Overview](#project-overview)
+  - [Architecture](#architecture)
+  - [Project Structure](#project-structure)
+  - [Layer Responsibilities](#layer-responsibilities)
+    - [Layer 1 — API (`IdeaVault.API`)](#layer-1--api-ideavaultapi)
+    - [Layer 2 — Core (`IdeaVault.Core`)](#layer-2--core-ideavaultcore)
+    - [Layer 3 — Application (`IdeaVault.Application`)](#layer-3--application-ideavaultapplication)
+    - [Layer 4 — Infrastructure (`IdeaVault.Infrastructure`)](#layer-4--infrastructure-ideavaultinfrastructure)
+  - [Domain Models](#domain-models)
+  - [Authentication Flow](#authentication-flow)
+    - [Registration](#registration)
+    - [Login](#login)
+    - [Forgot Password](#forgot-password)
+  - [API Endpoints](#api-endpoints)
+    - [Auth](#auth)
+    - [Teams](#teams)
+    - [Ideas](#ideas)
+    - [Dashboard](#dashboard)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Create the Solution](#create-the-solution)
+    - [Install NuGet Packages](#install-nuget-packages)
+  - [Configuration](#configuration)
+  - [Database Setup](#database-setup)
+  - [Running the Project](#running-the-project)
+  - [Testing](#testing)
 
 ---
 
-## Security Features
+## Project Overview
 
-### Token Security
-1. **Access Tokens**
-   - 15-minute expiry (short-lived)
-   - HS512 (HMAC-SHA512) signing
-   - Contains claims: userId, email, name, jti (unique ID)
-   - Validated on every request
+IdeaVault is a collaborative idea management platform. Users register, join teams, and anonymously submit ideas that peers can rate. The backend is built with **.NET 10** using a clean four-layer architecture.
 
-2. **Refresh Tokens**
-   - 7-day expiry (configurable)
-   - 32-byte cryptographically secure (256-bits entropy)
-   - SHA-256 hashed in database (never stored plain)
-   - Single-use with token rotation
-   - Family tracking for breach detection
-
-3. **Token Rotation Pattern**
-   - Old refresh token marked as "used"
-   - New refresh token issued with new access token
-   - Old token linked to new via `ReplacedByTokenId`
-   - Prevents token reuse attacks
-
-4. **Breach Detection**
-   - If revoked token is reused → Security alert
-   - All tokens for user revoked immediately
-   - Incident logged with IP address and timestamp
-
-### Email Verification
-- 24-hour token expiry
-- SHA-256 hashed in database
-- Single-use tokens
-- Rate-limited resend (max once per 2 minutes)
-- Must verify before login
-
-### Audit Trail
-- All auth events logged with IP address
-- Token creation/revocation tracked
-- Failed login attempts recorded
-- Email verification attempts logged
-- Security incidents flagged as errors
+**Core Features:**
+- Email-based registration with OTP verification
+- JWT access + refresh token authentication
+- Password reset via email OTP
+- Team creation — one team per user, creator becomes admin
+- Admin can add members to the team
+- Anonymous idea submission — author identity is hidden from all consumers
+- Idea rating (1–5 stars) by any user including the author
+- Dashboard with aggregated idea analytics
 
 ---
 
-## Configuration
+## Architecture
 
-### appsettings.json
+```
+┌─────────────────────────────────────────┐
+│              API Layer                  │  ← Controllers, Middleware, DTOs, Filters
+├─────────────────────────────────────────┤
+│           Application Layer             │  ← Use Cases, CQRS Commands/Queries, Validators
+├─────────────────────────────────────────┤
+│             Core Layer                  │  ← Entities, Interfaces, Domain Events, Enums
+├─────────────────────────────────────────┤
+│         Infrastructure Layer            │  ← EF Core, Repositories, Email, JWT, Caching
+└─────────────────────────────────────────┘
+```
 
-```json
+Dependencies flow **inward only**: API → Application → Core ← Infrastructure
+
+---
+
+## Project Structure
+
+```
+IdeaVault/
+├── IdeaVault.sln
+│
+├── src/
+│   ├── IdeaVault.API/                    # Layer 1 — Presentation
+│   │   ├── Controllers/
+│   │   │   ├── AuthController.cs
+│   │   │   ├── TeamsController.cs
+│   │   │   ├── IdeasController.cs
+│   │   │   └── DashboardController.cs
+│   │   ├── Middleware/
+│   │   │   ├── ExceptionHandlingMiddleware.cs
+│   │   │   └── RequestLoggingMiddleware.cs
+│   │   ├── Filters/
+│   │   │   └── ValidationFilter.cs
+│   │   ├── DTOs/
+│   │   │   ├── Auth/
+│   │   │   ├── Teams/
+│   │   │   ├── Ideas/
+│   │   │   └── Dashboard/
+│   │   ├── Extensions/
+│   │   │   └── ServiceCollectionExtensions.cs
+│   │   ├── appsettings.json
+│   │   ├── appsettings.Development.json
+│   │   └── Program.cs
+│   │
+│   ├── IdeaVault.Core/                   # Layer 2 — Domain Core
+│   │   ├── Entities/
+│   │   │   ├── User.cs
+│   │   │   ├── Team.cs
+│   │   │   ├── TeamMember.cs
+│   │   │   ├── Idea.cs
+│   │   │   ├── IdeaRating.cs
+│   │   │   └── OtpCode.cs
+│   │   ├── Interfaces/
+│   │   │   ├── Repositories/
+│   │   │   │   ├── IUserRepository.cs
+│   │   │   │   ├── ITeamRepository.cs
+│   │   │   │   ├── IIdeaRepository.cs
+│   │   │   │   └── IOtpRepository.cs
+│   │   │   ├── Services/
+│   │   │   │   ├── IEmailService.cs
+│   │   │   │   ├── IJwtService.cs
+│   │   │   │   └── IOtpService.cs
+│   │   │   └── IUnitOfWork.cs
+│   │   ├── Enums/
+│   │   │   ├── OtpPurpose.cs
+│   │   │   └── TeamRole.cs
+│   │   └── Exceptions/
+│   │       ├── DomainException.cs
+│   │       ├── NotFoundException.cs
+│   │       └── UnauthorizedException.cs
+│   │
+│   ├── IdeaVault.Application/            # Layer 3 — Application Logic
+│   │   ├── Auth/
+│   │   │   ├── Commands/
+│   │   │   │   ├── RegisterCommand.cs
+│   │   │   │   ├── VerifyRegisterOtpCommand.cs
+│   │   │   │   ├── LoginCommand.cs
+│   │   │   │   ├── ForgotPasswordCommand.cs
+│   │   │   │   ├── ResetPasswordCommand.cs
+│   │   │   │   └── RefreshTokenCommand.cs
+│   │   │   └── Handlers/
+│   │   │       └── ...Handlers.cs
+│   │   ├── Teams/
+│   │   │   ├── Commands/
+│   │   │   │   ├── CreateTeamCommand.cs
+│   │   │   │   └── AddMemberCommand.cs
+│   │   │   └── Queries/
+│   │   │       └── GetTeamQuery.cs
+│   │   ├── Ideas/
+│   │   │   ├── Commands/
+│   │   │   │   ├── CreateIdeaCommand.cs
+│   │   │   │   └── RateIdeaCommand.cs
+│   │   │   └── Queries/
+│   │   │       ├── GetIdeasQuery.cs
+│   │   │       └── GetIdeaByIdQuery.cs
+│   │   ├── Dashboard/
+│   │   │   └── Queries/
+│   │   │       └── GetDashboardInsightsQuery.cs
+│   │   ├── Common/
+│   │   │   ├── Behaviors/
+│   │   │   │   ├── ValidationBehavior.cs
+│   │   │   │   └── LoggingBehavior.cs
+│   │   │   └── Mappings/
+│   │   │       └── MappingProfile.cs
+│   │   └── DependencyInjection.cs
+│   │
+│   └── IdeaVault.Infrastructure/         # Layer 4 — Infrastructure
+│       ├── Persistence/
+│       │   ├── AppDbContext.cs
+│       │   ├── Configurations/
+│       │   │   ├── UserConfiguration.cs
+│       │   │   ├── TeamConfiguration.cs
+│       │   │   ├── IdeaConfiguration.cs
+│       │   │   └── IdeaRatingConfiguration.cs
+│       │   ├── Repositories/
+│       │   │   ├── UserRepository.cs
+│       │   │   ├── TeamRepository.cs
+│       │   │   ├── IdeaRepository.cs
+│       │   │   └── OtpRepository.cs
+│       │   ├── Migrations/
+│       │   └── UnitOfWork.cs
+│       ├── Services/
+│       │   ├── JwtService.cs
+│       │   ├── OtpService.cs
+│       │   └── EmailService.cs
+│       ├── Caching/
+│       │   └── CacheService.cs
+│       └── DependencyInjection.cs
+│
+└── tests/
+    ├── IdeaVault.UnitTests/
+    └── IdeaVault.IntegrationTests/
+```
+
+---
+
+## Layer Responsibilities
+
+### Layer 1 — API (`IdeaVault.API`)
+
+The entry point of the application. Handles HTTP concerns only.
+
+- **Controllers** receive HTTP requests and delegate to MediatR commands/queries
+- **DTOs** define request/response shapes (never expose domain entities)
+- **Middleware** handles cross-cutting concerns: exceptions, logging, correlation IDs
+- **Filters** run validation before hitting the controller action
+- **Program.cs** wires up all services and pipeline
+
+```csharp
+// Program.cs — .NET 10 minimal hosting
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services
+    .AddApplication()           // Application layer DI
+    .AddInfrastructure(builder.Configuration)  // Infrastructure layer DI
+    .AddApiServices();          // API-specific: Swagger, CORS, Auth middleware
+
+var app = builder.Build();
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
+app.Run();
+```
+
+---
+
+### Layer 2 — Core (`IdeaVault.Core`)
+
+The **heart of the system**. Contains pure domain logic with zero external dependencies.
+
+- **Entities** are plain C# classes with domain behavior
+- **Interfaces** define contracts that Infrastructure must implement (Dependency Inversion)
+- **Enums** represent domain states
+- **Exceptions** model domain rule violations
+
+```csharp
+// Core/Entities/Idea.cs
+public class Idea
 {
-  "Jwt": {
-    "Key": "YOUR_SECRET_KEY_MIN_32_CHARS",      // Environment variable: JWT_SECRET
-    "Issuer": "BlindIdeaAPI",                     // Environment variable: JWT_ISSUER
-    "Audience": "BlindIdeaClient",                // Environment variable: JWT_AUDIENCE
-    "AccessTokenExpiryMinutes": 15,               // Environment variable: JWT_ACCESS_EXPIRY_MINUTES
-    "RefreshTokenExpiryDays": 7                   // Environment variable: JWT_REFRESH_EXPIRY_DAYS
-  },
-  "Email": {
-    "From": "noreply@blindidea.com",             // Environment variable: SMTP_FROM
-    "SmtpServer": "smtp.office365.com",          // Environment variable: SMTP_HOST
-    "Port": 587,                                  // Environment variable: SMTP_PORT
-    "Username": "your-email@outlook.com",        // Environment variable: SMTP_USER
-    "Password": "your-app-password",             // Environment variable: SMTP_PASSWORD
-    "EnableSsl": true                            // Environment variable: SMTP_ENABLE_SSL
-  },
-  "AppBaseUrl": "https://yourdomain.com"         // Environment variable: APP_BASE_URL
+    public Guid Id { get; private set; }
+    public string Name { get; private set; }
+    public string Description { get; private set; }
+    public string Tags { get; private set; }
+    public Guid AuthorId { get; private set; }   // stored, but NEVER returned in queries
+    public Guid TeamId { get; private set; }
+    public DateTime CreatedAt { get; private set; }
+    public ICollection<IdeaRating> Ratings { get; private set; } = [];
+
+    public double AverageRating => Ratings.Any()
+        ? Ratings.Average(r => r.Score)
+        : 0;
+
+    public static Idea Create(string name, string description, string tags, Guid authorId, Guid teamId)
+    {
+        if (string.IsNullOrWhiteSpace(name)) throw new DomainException("Idea name is required.");
+        return new Idea
+        {
+            Id = Guid.NewGuid(),
+            Name = name,
+            Description = description,
+            Tags = tags,
+            AuthorId = authorId,
+            TeamId = teamId,
+            CreatedAt = DateTime.UtcNow
+        };
+    }
 }
 ```
 
-### Environment Variables (Production)
-```bash
-JWT_SECRET=your_secure_secret_key_min_32_chars
-JWT_ISSUER=BlindIdeaAPI
-JWT_AUDIENCE=BlindIdeaClient
-JWT_ACCESS_EXPIRY_MINUTES=15
-JWT_REFRESH_EXPIRY_DAYS=7
-JWT_REFRESH_EXPIRY_DAYS=7
-SMTP_HOST=smtp.office365.com
-SMTP_PORT=587
-SMTP_USER=your-email@outlook.com
-SMTP_PASSWORD=your-app-password
-SMTP_ENABLE_SSL=true
-APP_BASE_URL=https://yourdomain.com
+---
+
+### Layer 3 — Application (`IdeaVault.Application`)
+
+Orchestrates use cases using the **CQRS + MediatR** pattern.
+
+- **Commands** mutate state (Register, CreateIdea, RateIdea)
+- **Queries** read state (GetIdeas, GetDashboard)
+- **Handlers** implement the business logic for each command/query
+- **Behaviors** add cross-cutting pipeline steps (validation, logging)
+- **Validators** use FluentValidation
+
+```csharp
+// Application/Ideas/Commands/CreateIdeaCommand.cs
+public record CreateIdeaCommand(
+    string Name,
+    string Description,
+    string Tags,
+    Guid TeamId
+) : IRequest<Guid>;
+
+// Application/Ideas/Handlers/CreateIdeaHandler.cs
+public class CreateIdeaHandler(IIdeaRepository ideas, IUnitOfWork uow, ICurrentUser currentUser)
+    : IRequestHandler<CreateIdeaCommand, Guid>
+{
+    public async Task<Guid> Handle(CreateIdeaCommand cmd, CancellationToken ct)
+    {
+        var idea = Idea.Create(cmd.Name, cmd.Description, cmd.Tags, currentUser.Id, cmd.TeamId);
+        await ideas.AddAsync(idea, ct);
+        await uow.SaveChangesAsync(ct);
+        return idea.Id;
+    }
+}
 ```
+
+---
+
+### Layer 4 — Infrastructure (`IdeaVault.Infrastructure`)
+
+Implements all external concerns: database, email, caching, JWT.
+
+- **AppDbContext** — EF Core 10 with PostgreSQL (or SQL Server)
+- **Repositories** implement `IRepository<T>` from Core
+- **JwtService** issues access tokens + refresh tokens
+- **OtpService** generates and validates 6-digit codes with TTL
+- **EmailService** sends OTP emails via SMTP / SendGrid
+
+```csharp
+// Infrastructure/Services/JwtService.cs
+public class JwtService(IOptions<JwtSettings> settings) : IJwtService
+{
+    public string GenerateAccessToken(User user)
+    {
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Email, user.Email),
+        };
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.Value.Secret));
+        var token = new JwtSecurityToken(
+            issuer: settings.Value.Issuer,
+            audience: settings.Value.Audience,
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(15),
+            signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
+        );
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    public string GenerateRefreshToken() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+}
+```
+
+---
+
+## Domain Models
+
+| Entity | Key Fields |
+|---|---|
+| `User` | Id, Email, PasswordHash, IsVerified, RefreshToken, RefreshTokenExpiry |
+| `OtpCode` | Id, UserId, Code (hashed), Purpose (Register/ResetPassword), ExpiresAt, IsUsed |
+| `Team` | Id, Name, AdminUserId, CreatedAt |
+| `TeamMember` | TeamId, UserId, Role (Admin/Member) |
+| `Idea` | Id, Name, Description, Tags, AuthorId (private), TeamId, CreatedAt |
+| `IdeaRating` | Id, IdeaId, RaterId, Score (1–5), CreatedAt |
+
+**Anonymity Rule:** `AuthorId` is stored in the database for auditing, but the application layer **never maps it to any response DTO**. Queries for ideas always omit the author field entirely.
+
+---
+
+## Authentication Flow
+
+### Registration
+```
+POST /api/auth/register       → saves user (unverified), sends OTP email
+POST /api/auth/verify-register → validates OTP, marks user verified, returns tokens
+```
+
+### Login
+```
+POST /api/auth/login          → validates credentials, returns access + refresh tokens
+POST /api/auth/refresh        → validates refresh token, issues new token pair
+```
+
+### Forgot Password
+```
+POST /api/auth/forgot-password → sends OTP to registered email
+POST /api/auth/reset-password  → validates OTP + new password, returns tokens
+```
+
+**Token Strategy:**
+- Access Token: JWT, 15-minute TTL, signed with HS256
+- Refresh Token: opaque random bytes, 7-day TTL, stored hashed in DB
 
 ---
 
 ## API Endpoints
 
-### 1. Register User
-```http
-POST /api/auth/register
-Content-Type: application/json
+### Auth
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/api/auth/register` | None | Register with email + password |
+| POST | `/api/auth/verify-register` | None | Submit OTP to verify email |
+| POST | `/api/auth/login` | None | Login, receive tokens |
+| POST | `/api/auth/refresh` | None | Refresh access token |
+| POST | `/api/auth/forgot-password` | None | Request password reset OTP |
+| POST | `/api/auth/reset-password` | None | Reset password with OTP |
 
+### Teams
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/api/teams` | Required | Create team (user becomes admin) |
+| GET | `/api/teams/me` | Required | Get my team |
+| POST | `/api/teams/members` | Admin only | Add member by email |
+| GET | `/api/teams/members` | Required | List team members |
+
+**Business Rule:** A user can only belong to one team. Creating a second team returns `409 Conflict`.
+
+### Ideas
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/api/ideas` | Required | Submit idea (anonymous) |
+| GET | `/api/ideas` | Required | List ideas (no author field) |
+| GET | `/api/ideas/{id}` | Required | Get idea details |
+| POST | `/api/ideas/{id}/rate` | Required | Rate idea (1–5 stars) |
+
+### Dashboard
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/dashboard` | Required | Team idea insights |
+
+**Dashboard Response:**
+```json
 {
-  "name": "John Doe",
-  "email": "john@example.com",
-  "password": "SecurePassword123!",
-  "confirmPassword": "SecurePassword123!"
+  "totalIdeas": 42,
+  "averageRating": 3.8,
+  "topRatedIdeas": [...],
+  "ratingDistribution": { "1": 3, "2": 7, "3": 12, "4": 14, "5": 6 },
+  "ideasPerDay": [...],
+  "mostActiveDay": "2025-03-12"
 }
 ```
 
-**Response (200):**
+---
+
+## Getting Started
+
+### Prerequisites
+
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+- PostgreSQL 16+ (or SQL Server 2022)
+- SMTP credentials (or SendGrid API key)
+
+### Create the Solution
+
+```bash
+# Create solution
+dotnet new sln -n IdeaVault
+
+# Create projects
+dotnet new webapi -n IdeaVault.API -o src/IdeaVault.API
+dotnet new classlib -n IdeaVault.Core -o src/IdeaVault.Core
+dotnet new classlib -n IdeaVault.Application -o src/IdeaVault.Application
+dotnet new classlib -n IdeaVault.Infrastructure -o src/IdeaVault.Infrastructure
+
+# Add to solution
+dotnet sln add src/IdeaVault.API
+dotnet sln add src/IdeaVault.Core
+dotnet sln add src/IdeaVault.Application
+dotnet sln add src/IdeaVault.Infrastructure
+
+# Reference chain: API → Application → Core ← Infrastructure
+dotnet add src/IdeaVault.API reference src/IdeaVault.Application
+dotnet add src/IdeaVault.Application reference src/IdeaVault.Core
+dotnet add src/IdeaVault.Infrastructure reference src/IdeaVault.Core
+dotnet add src/IdeaVault.API reference src/IdeaVault.Infrastructure
+```
+
+### Install NuGet Packages
+
+```bash
+# Application Layer
+dotnet add src/IdeaVault.Application package MediatR
+dotnet add src/IdeaVault.Application package FluentValidation.DependencyInjectionExtensions
+dotnet add src/IdeaVault.Application package AutoMapper
+
+# Infrastructure Layer
+dotnet add src/IdeaVault.Infrastructure package Microsoft.EntityFrameworkCore
+dotnet add src/IdeaVault.Infrastructure package Npgsql.EntityFrameworkCore.PostgreSQL
+dotnet add src/IdeaVault.Infrastructure package Microsoft.EntityFrameworkCore.Design
+dotnet add src/IdeaVault.Infrastructure package MailKit
+
+# API Layer
+dotnet add src/IdeaVault.API package Microsoft.AspNetCore.Authentication.JwtBearer
+dotnet add src/IdeaVault.API package Swashbuckle.AspNetCore
+dotnet add src/IdeaVault.API package Serilog.AspNetCore
+```
+
+---
+
+## Configuration
+
+`appsettings.json`:
 ```json
 {
-  "accessToken": "eyJhbGc...",
-  "refreshToken": "qR8vN2...",
-  "accessTokenExpiration": "2024-01-01T10:15:00Z",
-  "refreshTokenExpiration": "2024-01-08T10:00:00Z",
-  "user": {
-    "id": "user-uuid",
-    "name": "John Doe",
-    "email": "john@example.com"
+  "ConnectionStrings": {
+    "Default": "Host=localhost;Database=ideavault;Username=postgres;Password=secret"
+  },
+  "Jwt": {
+    "Secret": "your-super-secret-key-at-least-32-chars",
+    "Issuer": "IdeaVault",
+    "Audience": "IdeaVaultUsers"
+  },
+  "Email": {
+    "Host": "smtp.sendgrid.net",
+    "Port": 587,
+    "Username": "apikey",
+    "Password": "SG.xxxxx",
+    "FromAddress": "noreply@ideavault.app",
+    "FromName": "IdeaVault"
+  },
+  "Otp": {
+    "ExpiryMinutes": 10
   }
 }
 ```
 
-**Note:** User receives verification email. Email must be verified before login.
-
-### 2. Verify Email
-```http
-GET /api/auth/verify-email?userId=user-uuid&token=verification_token
-```
-
-**Response (200):**
-```json
-{
-  "message": "Email verified successfully. You can now login."
-}
-```
-
-### 3. Resend Verification Email
-```http
-POST /api/auth/resend-verification
-Content-Type: application/json
-
-{
-  "email": "john@example.com"
-}
-```
-
-**Rate Limit:** Maximum once per 2 minutes per user
-
-### 4. Login
-```http
-POST /api/auth/login
-Content-Type: application/json
-
-{
-  "email": "john@example.com",
-  "password": "SecurePassword123!",
-  "rememberMe": false
-}
-```
-
-**Response (200):**
-```json
-{
-  "accessToken": "eyJhbGc...",
-  "refreshToken": "qR8vN2...",
-  "accessTokenExpiration": "2024-01-01T10:15:00Z",
-  "refreshTokenExpiration": "2024-01-08T10:00:00Z",
-  "user": {
-    "id": "user-uuid",
-    "name": "John Doe",
-    "email": "john@example.com"
-  }
-}
-```
-
-**Errors:**
-- 401: Invalid credentials or email not verified
-- 400: Validation error
-
-### 5. Refresh Token
-```http
-POST /api/auth/refresh
-Content-Type: application/json
-
-{
-  "refreshToken": "qR8vN2..."
-}
-```
-
-**Response (200):**
-```json
-{
-  "accessToken": "eyJhbGc...",  // New token
-  "refreshToken": "kL9mP5...",  // New token (rotation)
-  "accessTokenExpiration": "2024-01-01T10:15:00Z",
-  "refreshTokenExpiration": "2024-01-08T10:00:00Z",
-  "user": { ... }
-}
-```
-
-**Features:**
-- Old refresh token is revoked
-- New tokens issued
-- Detects token reuse (breach indicator)
-
-### 6. Logout (Single Device)
-```http
-POST /api/auth/logout
-Content-Type: application/json
-
-{
-  "refreshToken": "qR8vN2..."
-}
-```
-
-**Response (204):** No content
-
-### 7. Revoke All Tokens (Logout from All Devices)
-```http
-POST /api/auth/revoke-all
-Authorization: Bearer eyJhbGc...
-```
-
-**Response (204):** No content
-
-**Note:** Requires valid access token
-
----
-
-## Database Schema
-
-### RefreshTokens Table
-```sql
-CREATE TABLE [dbo].[RefreshTokens] (
-  [Id] uniqueidentifier NOT NULL PRIMARY KEY,
-  [TokenHash] nvarchar(256) NOT NULL,           -- SHA-256 hash
-  [JwtId] nvarchar(256) NOT NULL,               -- JWT ID for linking
-  [UserId] nvarchar(450) NOT NULL,              -- Foreign key to AspNetUsers
-  [ExpiresAt] datetime2 NOT NULL,
-  [CreatedAt] datetime2 NOT NULL,
-  [CreatedByIp] nvarchar(45),                   -- IPv6 max length
-  [RevokedAt] datetime2 NULL,                   -- NULL if not revoked
-  [RevokedByIp] nvarchar(45),
-  [ReplacedByTokenId] uniqueidentifier NULL,    -- Token rotation tracking
-  [IsUsed] bit NOT NULL,                        -- Single-use enforcement
-  CONSTRAINT [FK_RefreshTokens_Users] FOREIGN KEY ([UserId])
-    REFERENCES [AspNetUsers]([Id]) ON DELETE CASCADE,
-  INDEX [IX_RefreshTokens_UserId],
-  INDEX [IX_RefreshTokens_JwtId],
-  INDEX [IX_RefreshTokens_ExpiresAt]
-);
-```
-
-### EmailVerificationTokens Table
-```sql
-CREATE TABLE [dbo].[EmailVerificationTokens] (
-  [Id] uniqueidentifier NOT NULL PRIMARY KEY,
-  [TokenHash] nvarchar(256) NOT NULL,           -- SHA-256 hash
-  [UserId] nvarchar(450) NOT NULL,              -- Foreign key to AspNetUsers
-  [ExpiresAt] datetime2 NOT NULL,
-  [CreatedAt] datetime2 NOT NULL,
-  [VerifiedAt] datetime2 NULL,                  -- NULL if not used
-  CONSTRAINT [FK_EmailVerificationTokens_Users] FOREIGN KEY ([UserId])
-    REFERENCES [AspNetUsers]([Id]) ON DELETE CASCADE,
-  INDEX [IX_EmailVerificationTokens_UserId],
-  INDEX [IX_EmailVerificationTokens_ExpiresAt]
-);
-```
-
----
-
-## Files Modified/Created
-
-### Created Files
-- `BlindIdea.Core/Entities/RefreshToken.cs` - Token rotation entity
-- `BlindIdea.Core/Entities/EmailVerificationToken.cs` - Email verification entity
-- `BlindIdea.Application/Dtos/RefreshTokenRequestDto.cs` - Token refresh request
-- `BlindIdea.Application/Dtos/ResendVerificationEmailDto.cs` - Verification resend request
-- `BlindIdea.Infrastructure/Migrations/AddRefreshTokenAndEmailVerificationToken.cs` - Database migration
-
-### Modified Files
-- `BlindIdea.Core/Entities/User.cs` - Already supports email verification
-- `BlindIdea.Core/Interfaces/IJwtService.cs` - Added ExtractJwtId() method
-- `BlindIdea.Infrastructure/Services/JwtService.cs` - Full implementation with token hashing
-- `BlindIdea.Infrastructure/Common/Options/JwtOptions.cs` - Added AccessTokenExpiryMinutes & RefreshTokenExpiryDays
-- `BlindIdea.Application/Services/Interfaces/IAuthService.cs` - Added all auth methods
-- `BlindIdea.Application/Services/Implementations/AuthService.cs` - Full implementation with email verification
-- `BlindIdea.Application/Dtos/AuthResponseDto.cs` - Added refresh token fields
-- `BlindIdea.API/Controllers/AuthController.cs` - All endpoints (register, login, refresh, logout, verify, resend)
-- `BlindIdea.API/Program.cs` - EmailService registration
-- `BlindIdea.API/appsettings.json` - JWT expiry configuration
-- `BlindIdea.Infrastructure/Persistence/AppDbContext.cs` - Entity configurations for new entities
-
----
-
-## Testing the System
-
-### 1. Register a New User
+Use `dotnet user-secrets` for local development to keep credentials out of source control:
 ```bash
-curl -X POST https://localhost:7001/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Test User",
-    "email": "test@example.com",
-    "password": "TestPass123!",
-    "confirmPassword": "TestPass123!"
-  }'
+dotnet user-secrets set "Jwt:Secret" "my-local-dev-secret-32-chars-minimum"
 ```
 
-### 2. Check Email for Verification Link
-The email will contain a link like:
-```
-https://localhost:7001/auth/verify-email?userId=XXX&token=YYY
-```
+---
 
-### 3. Verify Email (Click link or use API)
+## Database Setup
+
 ```bash
-curl -X GET "https://localhost:7001/api/auth/verify-email?userId=USER_ID&token=TOKEN"
+# Add initial migration
+dotnet ef migrations add InitialCreate \
+  --project src/IdeaVault.Infrastructure \
+  --startup-project src/IdeaVault.API
+
+# Apply migration
+dotnet ef database update \
+  --project src/IdeaVault.Infrastructure \
+  --startup-project src/IdeaVault.API
 ```
 
-### 4. Login After Verification
+---
+
+## Running the Project
+
 ```bash
-curl -X POST https://localhost:7001/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "test@example.com",
-    "password": "TestPass123!",
-    "rememberMe": false
-  }'
+cd src/IdeaVault.API
+dotnet run
 ```
 
-### 5. Use Access Token in Requests
+Swagger UI available at: `https://localhost:5001/swagger`
+
+---
+
+## Testing
+
 ```bash
-curl -X GET https://localhost:7001/api/team \
-  -H "Authorization: Bearer ACCESS_TOKEN"
+# Run all tests
+dotnet test
+
+# Run with coverage
+dotnet test --collect:"XPlat Code Coverage"
 ```
 
-### 6. Refresh Token When Expired
-```bash
-curl -X POST https://localhost:7001/api/auth/refresh \
-  -H "Content-Type: application/json" \
-  -d '{
-    "refreshToken": "REFRESH_TOKEN"
-  }'
-```
-
-### 7. Logout
-```bash
-curl -X POST https://localhost:7001/api/auth/logout \
-  -H "Content-Type: application/json" \
-  -d '{
-    "refreshToken": "REFRESH_TOKEN"
-  }'
-```
+Unit tests mock all interfaces from `IdeaVault.Core`. Integration tests use `WebApplicationFactory` with an in-memory or test PostgreSQL database.
 
 ---
 
-## Logging
-
-All authentication events are logged using ASP.NET Core's ILogger:
-
-```
-[Information] User registered successfully: user-id (email@test.com)
-[Information] Verification email sent to user: user-id
-[Information] User logged in successfully: user-id from IP: 192.168.1.1
-[Information] Token refreshed for user: user-id (Token rotation)
-[Information] Email verified successfully for user: user-id
-[Warning] Login attempt with unverified email: email@test.com from IP: 192.168.1.1
-[Warning] Failed login attempt for user: user-id from IP: 192.168.1.1
-[Error] SECURITY ALERT: Revoked token reused by user user-id from IP 192.168.1.1. Revoking all tokens.
-```
-
-View logs in:
-- Development: Console output
-- Production: Application Insights / Logging provider
-
----
-
-## Security Best Practices
-
-1. **Never Log Tokens** - Tokens are never written to logs
-2. **Hash All Tokens** - Tokens are hashed with SHA-256 before storage
-3. **HTTPS Only** - All endpoints require HTTPS in production
-4. **Secure Headers** - Use HttpOnly, Secure, SameSite cookies if storing tokens there
-5. **Environment Variables** - Never hardcode secrets in appsettings.json
-6. **Breach Detection** - Token reuse triggers immediate revocation
-7. **Rate Limiting** - Email verification resend limited to 1 per 2 minutes
-8. **Email Verification** - Users cannot log in until email is verified
-
----
-
-## Rate Limits
-
-- **Email Verification Resend**: 1 request per 2 minutes per user
-- **Password Reset** (future): Not yet implemented
-- **Login Attempts** (future): Rate limiting not yet implemented
-
----
-
-## Future Enhancements
-
-1. [ ] Add rate limiting on login attempts (e.g., 5 failed attempts → 15 min lockout)
-2. [ ] Implement password reset flow with secure token
-3. [ ] Add refresh token to HttpOnly secure cookie (optional, body-based is fine too)
-4. [ ] Add IP whitelisting for sensitive operations
-5. [ ] Implement account lockout after failed login attempts
-6. [ ] Add two-factor authentication (2FA) support
-7. [ ] Token introspection endpoint for client validation
-8. [ ] Revoke by JWT ID (jti) endpoint
-9. [ ] Add role-based claims to access tokens
-10. [ ] Implement token binding (IP affinity)
-
----
-
-## Troubleshooting
-
-### "Please verify your email before logging in"
-- User email is not verified
-- Solution: Send verification email via POST /api/auth/resend-verification
-
-### "The refresh token is invalid, expired, or has been revoked"
-- Token has expired (>7 days old)
-- Token was revoked
-- Token doesn't exist in database
-- Solution: Re-login to get new tokens
-
-### "SECURITY ALERT: Revoked token reused"
-- A revoked token was used again
-- All user's tokens have been revoked
-- Solution: Re-login, check for account compromise
-
-### "Email verification token invalid, expired, or already used"
-- Token expired (>24 hours old)
-- Token already used
-- Wrong token/user combination
-- Solution: Request new verification email
-
----
-
-## Summary
-
-The authentication system is **production-ready** with:
-
-✅ Secure JWT tokens with short expiry
-✅ Refresh token rotation with breach detection
-✅ Email verification requirements
-✅ Comprehensive audit logging
-✅ Proper error handling and validation
-✅ Configurable via environment variables
-✅ Hashbased token storage (SHA-256)
-✅ Token family tracking for security
-
-The system is backward-compatible and can be extended with additional features like 2FA, password reset, and IP-based rate limiting.
-
+> Built with ❤️ on .NET 10 — Clean Architecture, no shortcuts.
