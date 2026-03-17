@@ -164,3 +164,5 @@ D:\Authentication\Authentication\obj\Debug\net10.0\BlindIdea.API.pdb
 D:\Authentication\Authentication\obj\Debug\net10.0\BlindIdea.API.genruntimeconfig.cache
 D:\Authentication\Authentication\obj\Debug\net10.0\ref\BlindIdea.API.dll
 D:\Authentication\Authentication\obj\Debug\net10.0\BlindIdea.API.sourcelink.json
+D:\Authentication\Authentication\bin\Debug\net10.0\Microsoft.AspNetCore.Authentication.Google.dll
+D:\Authentication\Authentication\bin\Debug\net10.0\AspNet.Security.OAuth.GitHub.dll

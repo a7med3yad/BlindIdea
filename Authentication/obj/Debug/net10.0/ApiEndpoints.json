@@ -1,6 +1,37 @@
 [
   {
     "ContainingType": "Authentication.Controllers.AuthController",
+    "Method": "AdminPanel",
+    "RelativePath": "api/Auth/admin-panel",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Authentication.Controllers.AuthController",
+    "Method": "AssignRole",
+    "RelativePath": "api/Auth/assign-role",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "email",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "role",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Authentication.Controllers.AuthController",
     "Method": "ChangePassword",
     "RelativePath": "api/Auth/change-password",
     "HttpMethod": "POST",
@@ -33,6 +64,26 @@
   },
   {
     "ContainingType": "Authentication.Controllers.AuthController",
+    "Method": "GithubCallback",
+    "RelativePath": "api/Auth/github-callback",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Authentication.Controllers.AuthController",
+    "Method": "GoogleCallback",
+    "RelativePath": "api/Auth/google-callback",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Authentication.Controllers.AuthController",
     "Method": "login",
     "RelativePath": "api/Auth/login",
     "HttpMethod": "POST",
@@ -45,6 +96,26 @@
         "IsRequired": true
       }
     ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Authentication.Controllers.AuthController",
+    "Method": "GitHubLogin",
+    "RelativePath": "api/Auth/login/github",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Authentication.Controllers.AuthController",
+    "Method": "GoogleLogin",
+    "RelativePath": "api/Auth/login/google",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
     "ReturnTypes": []
   },
   {
@@ -87,6 +158,16 @@
         "IsRequired": true
       }
     ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Authentication.Controllers.AuthController",
+    "Method": "UserDashboard",
+    "RelativePath": "api/Auth/user-dashboard",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
     "ReturnTypes": []
   },
   {

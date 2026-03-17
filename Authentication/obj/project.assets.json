@@ -2,6 +2,22 @@
   "version": 3,
   "targets": {
     "net10.0": {
+      "AspNet.Security.OAuth.GitHub/10.0.0": {
+        "type": "package",
+        "compile": {
+          "lib/net10.0/AspNet.Security.OAuth.GitHub.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net10.0/AspNet.Security.OAuth.GitHub.dll": {
+            "related": ".xml"
+          }
+        },
+        "frameworkReferences": [
+          "Microsoft.AspNetCore.App"
+        ]
+      },
       "Azure.Core/1.47.1": {
         "type": "package",
         "dependencies": {
@@ -79,6 +95,22 @@
             "related": ".dll.config;.pdb;.xml"
           }
         }
+      },
+      "Microsoft.AspNetCore.Authentication.Google/10.0.5": {
+        "type": "package",
+        "compile": {
+          "lib/net10.0/Microsoft.AspNetCore.Authentication.Google.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.AspNetCore.Authentication.Google.dll": {
+            "related": ".xml"
+          }
+        },
+        "frameworkReferences": [
+          "Microsoft.AspNetCore.App"
+        ]
       },
       "Microsoft.AspNetCore.Authentication.JwtBearer/10.0.5": {
         "type": "package",
@@ -1164,6 +1196,21 @@
     }
   },
   "libraries": {
+    "AspNet.Security.OAuth.GitHub/10.0.0": {
+      "sha512": "PbOrAso/hlCS2p3YHHq94C5W/6851xyMT8ZEkAc3eGQNlsu3Siwu/D98nzCKyOKmB+KNu9MirWpmO66PmEIexQ==",
+      "type": "package",
+      "path": "aspnet.security.oauth.github/10.0.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "Icon.png",
+        "README.md",
+        "aspnet.security.oauth.github.10.0.0.nupkg.sha512",
+        "aspnet.security.oauth.github.nuspec",
+        "lib/net10.0/AspNet.Security.OAuth.GitHub.dll",
+        "lib/net10.0/AspNet.Security.OAuth.GitHub.xml"
+      ]
+    },
     "Azure.Core/1.47.1": {
       "sha512": "oPcncSsDHuxB8SC522z47xbp2+ttkcKv2YZ90KXhRKN0YQd2+7l1UURT9EBzUNEXtkLZUOAB5xbByMTrYRh3yA==",
       "type": "package",
@@ -1284,6 +1331,22 @@
         "lib/netstandard2.1/MailKit.xml",
         "mailkit.4.15.1.nupkg.sha512",
         "mailkit.nuspec"
+      ]
+    },
+    "Microsoft.AspNetCore.Authentication.Google/10.0.5": {
+      "sha512": "y0Y04EYL1VwhuIQvnpjD5XoECl8EEPeXtBiveDXpsh9q3TnWDAfDuLJDp+LrCmOx9jbp23b6SAEBMmVO7zRtNQ==",
+      "type": "package",
+      "path": "microsoft.aspnetcore.authentication.google/10.0.5",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "Icon.png",
+        "PACKAGE.md",
+        "THIRD-PARTY-NOTICES.TXT",
+        "lib/net10.0/Microsoft.AspNetCore.Authentication.Google.dll",
+        "lib/net10.0/Microsoft.AspNetCore.Authentication.Google.xml",
+        "microsoft.aspnetcore.authentication.google.10.0.5.nupkg.sha512",
+        "microsoft.aspnetcore.authentication.google.nuspec"
       ]
     },
     "Microsoft.AspNetCore.Authentication.JwtBearer/10.0.5": {
@@ -3415,7 +3478,9 @@
   },
   "projectFileDependencyGroups": {
     "net10.0": [
+      "AspNet.Security.OAuth.GitHub >= 10.0.0",
       "MailKit >= 4.15.1",
+      "Microsoft.AspNetCore.Authentication.Google >= 10.0.5",
       "Microsoft.AspNetCore.Authentication.JwtBearer >= 10.0.5",
       "Microsoft.AspNetCore.Identity.EntityFrameworkCore >= 10.0.5",
       "Microsoft.AspNetCore.OpenApi >= 10.0.2",
@@ -3476,9 +3541,17 @@
       "net10.0": {
         "targetAlias": "net10.0",
         "dependencies": {
+          "AspNet.Security.OAuth.GitHub": {
+            "target": "Package",
+            "version": "[10.0.0, )"
+          },
           "MailKit": {
             "target": "Package",
             "version": "[4.15.1, )"
+          },
+          "Microsoft.AspNetCore.Authentication.Google": {
+            "target": "Package",
+            "version": "[10.0.5, )"
           },
           "Microsoft.AspNetCore.Authentication.JwtBearer": {
             "target": "Package",

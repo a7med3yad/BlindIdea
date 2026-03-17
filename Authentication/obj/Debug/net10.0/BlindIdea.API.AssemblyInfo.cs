@@ -11,10 +11,11 @@
 using System;
 using System.Reflection;
 
+[assembly: Microsoft.Extensions.Configuration.UserSecrets.UserSecretsIdAttribute("7d8c0bba-beea-4cbb-90ee-833d15a3916a")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("BlindIdea.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4488eacfa3deb768970c5c24b68012729e8ecec2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+79e5db028e1fd6b62ed7b42bbfd522e9a07b5eb1")]
 [assembly: System.Reflection.AssemblyProductAttribute("BlindIdea.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BlindIdea.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
