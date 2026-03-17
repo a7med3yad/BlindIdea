@@ -1,0 +1,300 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\Authentication\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|d:\\authentication\\authentication\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|solutionrelative:authentication\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|d:\\authentication\\authentication\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|solutionrelative:authentication\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|d:\\authentication\\authentication\\core\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|solutionrelative:authentication\\core\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Authentication\\Authentication\\Migrations\\20260316095637_siuuu.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Authentication\\Migrations\\20260316095637_siuuu.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Authentication\\Authentication\\Migrations\\20260316092129_siuuu.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Authentication\\Migrations\\20260316092129_siuuu.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Authentication\\Authentication\\Migrations\\20260316092033_siuuu.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Authentication\\Migrations\\20260316092033_siuuu.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|d:\\authentication\\authentication\\dtos\\authresponsedto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|solutionrelative:authentication\\dtos\\authresponsedto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|d:\\authentication\\authentication\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|solutionrelative:authentication\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|d:\\authentication\\authentication\\services\\emailservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|solutionrelative:authentication\\services\\emailservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|d:\\authentication\\authentication\\services\\otpservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|solutionrelative:authentication\\services\\otpservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|d:\\authentication\\authentication\\dtos\\changepassworddto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|solutionrelative:authentication\\dtos\\changepassworddto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|d:\\authentication\\authentication\\migrations\\20260316095707_siuuu.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|solutionrelative:authentication\\migrations\\20260316095707_siuuu.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|d:\\authentication\\authentication\\services\\tokenservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|solutionrelative:authentication\\services\\tokenservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|d:\\authentication\\authentication\\dtos\\verifyotpdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|solutionrelative:authentication\\dtos\\verifyotpdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|d:\\authentication\\authentication\\entities\\refreshtoken.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|solutionrelative:authentication\\entities\\refreshtoken.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|d:\\authentication\\authentication\\dtos\\registerdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|solutionrelative:authentication\\dtos\\registerdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|d:\\authentication\\authentication\\entities\\applicationuser.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{043F2767-6E88-D176-C5DD-33E9B8CE8788}|Authentication\\BlindIdea.API.csproj|solutionrelative:authentication\\entities\\applicationuser.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 6,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "EmailService.cs",
+              "DocumentMoniker": "D:\\Authentication\\Authentication\\Services\\EmailService.cs",
+              "RelativeDocumentMoniker": "Authentication\\Services\\EmailService.cs",
+              "ToolTip": "D:\\Authentication\\Authentication\\Services\\EmailService.cs",
+              "RelativeToolTip": "Authentication\\Services\\EmailService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAAOAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-16T04:38:29.001Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "OtpService.cs",
+              "DocumentMoniker": "D:\\Authentication\\Authentication\\Services\\OtpService.cs",
+              "RelativeDocumentMoniker": "Authentication\\Services\\OtpService.cs",
+              "ToolTip": "D:\\Authentication\\Authentication\\Services\\OtpService.cs",
+              "RelativeToolTip": "Authentication\\Services\\OtpService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAdAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-16T04:37:58.767Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "AppDbContext.cs",
+              "DocumentMoniker": "D:\\Authentication\\Authentication\\Core\\AppDbContext.cs",
+              "RelativeDocumentMoniker": "Authentication\\Core\\AppDbContext.cs",
+              "ToolTip": "D:\\Authentication\\Authentication\\Core\\AppDbContext.cs",
+              "RelativeToolTip": "Authentication\\Core\\AppDbContext.cs",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-16T04:14:10.71Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "ChangePasswordDto.cs",
+              "DocumentMoniker": "D:\\Authentication\\Authentication\\Dtos\\ChangePasswordDto.cs",
+              "RelativeDocumentMoniker": "Authentication\\Dtos\\ChangePasswordDto.cs",
+              "ToolTip": "D:\\Authentication\\Authentication\\Dtos\\ChangePasswordDto.cs",
+              "RelativeToolTip": "Authentication\\Dtos\\ChangePasswordDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAUAAAAvAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-16T09:09:54.369Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "20260316095637_siuuu.cs",
+              "DocumentMoniker": "D:\\Authentication\\Authentication\\Migrations\\20260316095637_siuuu.cs",
+              "RelativeDocumentMoniker": "Authentication\\Migrations\\20260316095637_siuuu.cs",
+              "ToolTip": "D:\\Authentication\\Authentication\\Migrations\\20260316095637_siuuu.cs",
+              "RelativeToolTip": "Authentication\\Migrations\\20260316095637_siuuu.cs",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-16T09:56:37.933Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "D:\\Authentication\\Authentication\\appsettings.json",
+              "RelativeDocumentMoniker": "Authentication\\appsettings.json",
+              "ToolTip": "D:\\Authentication\\Authentication\\appsettings.json",
+              "RelativeToolTip": "Authentication\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAA7AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-03-16T04:26:24.465Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\Authentication\\Authentication\\Program.cs",
+              "RelativeDocumentMoniker": "Authentication\\Program.cs",
+              "ToolTip": "D:\\Authentication\\Authentication\\Program.cs",
+              "RelativeToolTip": "Authentication\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAA0AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-16T04:26:35.181Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "AuthController.cs",
+              "DocumentMoniker": "D:\\Authentication\\Authentication\\Controllers\\AuthController.cs",
+              "RelativeDocumentMoniker": "Authentication\\Controllers\\AuthController.cs",
+              "ToolTip": "D:\\Authentication\\Authentication\\Controllers\\AuthController.cs",
+              "RelativeToolTip": "Authentication\\Controllers\\AuthController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAUAAAAgAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-16T04:57:56.916Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "AuthResponseDto.cs",
+              "DocumentMoniker": "D:\\Authentication\\Authentication\\Dtos\\AuthResponseDto.cs",
+              "RelativeDocumentMoniker": "Authentication\\Dtos\\AuthResponseDto.cs",
+              "ToolTip": "D:\\Authentication\\Authentication\\Dtos\\AuthResponseDto.cs",
+              "RelativeToolTip": "Authentication\\Dtos\\AuthResponseDto.cs",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-16T11:42:29.086Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "20260316095707_siuuu.cs",
+              "DocumentMoniker": "D:\\Authentication\\Authentication\\Migrations\\20260316095707_siuuu.cs",
+              "RelativeDocumentMoniker": "Authentication\\Migrations\\20260316095707_siuuu.cs",
+              "ToolTip": "D:\\Authentication\\Authentication\\Migrations\\20260316095707_siuuu.cs",
+              "RelativeToolTip": "Authentication\\Migrations\\20260316095707_siuuu.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-16T09:57:07.972Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "TokenService.cs",
+              "DocumentMoniker": "D:\\Authentication\\Authentication\\Services\\TokenService.cs",
+              "RelativeDocumentMoniker": "Authentication\\Services\\TokenService.cs",
+              "ToolTip": "D:\\Authentication\\Authentication\\Services\\TokenService.cs",
+              "RelativeToolTip": "Authentication\\Services\\TokenService.cs",
+              "ViewState": "AgIAACYAAAAAAAAAAAAAAD0AAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-16T04:32:46.069Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "VerifyOtpDto.cs",
+              "DocumentMoniker": "D:\\Authentication\\Authentication\\Dtos\\VerifyOtpDto.cs",
+              "RelativeDocumentMoniker": "Authentication\\Dtos\\VerifyOtpDto.cs",
+              "ToolTip": "D:\\Authentication\\Authentication\\Dtos\\VerifyOtpDto.cs",
+              "RelativeToolTip": "Authentication\\Dtos\\VerifyOtpDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAXAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-16T05:06:44.375Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "RefreshToken.cs",
+              "DocumentMoniker": "D:\\Authentication\\Authentication\\Entities\\RefreshToken.cs",
+              "RelativeDocumentMoniker": "Authentication\\Entities\\RefreshToken.cs",
+              "ToolTip": "D:\\Authentication\\Authentication\\Entities\\RefreshToken.cs",
+              "RelativeToolTip": "Authentication\\Entities\\RefreshToken.cs",
+              "ViewState": "AgIAAAIAAAAAAAAAAAAxwAwAAAAyAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-16T09:53:38.007Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "20260316092129_siuuu.cs",
+              "DocumentMoniker": "D:\\Authentication\\Authentication\\Migrations\\20260316092129_siuuu.cs",
+              "RelativeDocumentMoniker": "Authentication\\Migrations\\20260316092129_siuuu.cs",
+              "ToolTip": "D:\\Authentication\\Authentication\\Migrations\\20260316092129_siuuu.cs",
+              "RelativeToolTip": "Authentication\\Migrations\\20260316092129_siuuu.cs",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-16T09:21:29.948Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "RegisterDto.cs",
+              "DocumentMoniker": "D:\\Authentication\\Authentication\\Dtos\\RegisterDto.cs",
+              "RelativeDocumentMoniker": "Authentication\\Dtos\\RegisterDto.cs",
+              "ToolTip": "D:\\Authentication\\Authentication\\Dtos\\RegisterDto.cs",
+              "RelativeToolTip": "Authentication\\Dtos\\RegisterDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAXAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-16T04:54:46.595Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "20260316092033_siuuu.cs",
+              "DocumentMoniker": "D:\\Authentication\\Authentication\\Migrations\\20260316092033_siuuu.cs",
+              "RelativeDocumentMoniker": "Authentication\\Migrations\\20260316092033_siuuu.cs",
+              "ToolTip": "D:\\Authentication\\Authentication\\Migrations\\20260316092033_siuuu.cs",
+              "RelativeToolTip": "Authentication\\Migrations\\20260316092033_siuuu.cs",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-16T09:20:34.042Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "ApplicationUser.cs",
+              "DocumentMoniker": "D:\\Authentication\\Authentication\\Entities\\ApplicationUser.cs",
+              "RelativeDocumentMoniker": "Authentication\\Entities\\ApplicationUser.cs",
+              "ToolTip": "D:\\Authentication\\Authentication\\Entities\\ApplicationUser.cs",
+              "RelativeToolTip": "Authentication\\Entities\\ApplicationUser.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAA0AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-16T04:23:27.374Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
