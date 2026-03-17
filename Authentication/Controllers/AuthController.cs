@@ -254,7 +254,8 @@ namespace Authentication.Controllers
         [HttpGet("google-callback")]
         public async Task<IActionResult> GoogleCallback()
         {
-            var result = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);  
+            var result = await HttpContext.AuthenticateAsync(IdentityConstants.ExternalScheme);
+
 
             if (!result.Succeeded)
                 return BadRequest("Google authentication failed");
@@ -277,7 +278,8 @@ namespace Authentication.Controllers
         {
             var props = new AuthenticationProperties
             {
-                RedirectUri = Url.Action("GithubCallback")
+                RedirectUri = Url.Action("GithubCallback"),
+                Items = { { "scheme", "GitHub" } }
             };
             return Challenge(props, GitHubAuthenticationDefaults.AuthenticationScheme);
         }
@@ -285,7 +287,7 @@ namespace Authentication.Controllers
         [HttpGet("github-callback")]
         public async Task<IActionResult> GithubCallback()
         {
-            var result = await HttpContext.AuthenticateAsync(GitHubAuthenticationDefaults.AuthenticationScheme);
+            var result = await HttpContext.AuthenticateAsync(IdentityConstants.ExternalScheme);
 
             if (!result.Succeeded)
                 return BadRequest("Github authentication failed");
