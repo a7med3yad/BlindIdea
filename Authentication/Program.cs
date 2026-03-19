@@ -1,4 +1,6 @@
-﻿using BlindIdea.API.Application.Teams;
+﻿using BlindIdea.API.Application.Ideas;
+using BlindIdea.API.Application.Teams;
+using BlindIdea.API.Infrastructure.Encryption;
 using BlindIdea.API.Services.Auth;
 using BlindIdea.API.UnitOfWorks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -81,9 +83,13 @@ namespace BlindIdea.API
             builder.Services.AddScoped<EmailService>();
             builder.Services.AddScoped<OtpService>();
             builder.Services.AddScoped<OAuthService>();
+
             builder.Services.AddEndpointsApiExplorer();
+
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<TeamService>();
+            builder.Services.AddScoped<EncryptionService>();
+            builder.Services.AddScoped<IdeaService>();
 
 
             var app = builder.Build();
