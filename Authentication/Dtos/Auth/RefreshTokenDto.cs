@@ -1,4 +1,4 @@
-﻿namespace BlindIdea.API.Dtos
+﻿namespace BlindIdea.API.Dtos.Auth
 {
     public class RefreshTokenDto
     {

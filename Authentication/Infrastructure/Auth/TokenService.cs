@@ -8,9 +8,9 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore; 
+using Microsoft.EntityFrameworkCore;
 
-namespace BlindIdea.API.Services
+namespace BlindIdea.API.Services.Auth
 {
     public class TokenService
     {
@@ -28,7 +28,6 @@ namespace BlindIdea.API.Services
             if (user == null)
                 throw new Exception("User is null");
 
-            // ✅ Reload user fresh from DB to make sure all fields are loaded
             var freshUser = await _userManager.FindByIdAsync(user.Id)
                 ?? throw new Exception($"User not found by Id: {user.Id}");
 
@@ -70,7 +69,6 @@ namespace BlindIdea.API.Services
 
             try
             {
-                // ✅ Detach any existing tracked entities to avoid conflicts
                 var trackedUser = _context.ChangeTracker.Entries<ApplicationUser>()
                     .FirstOrDefault(e => e.Entity.Id == user.Id);
 

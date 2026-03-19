@@ -1,6 +1,6 @@
 ﻿using BlindIdea.API.Entities;
 
-namespace BlindIdea.API.Services
+namespace BlindIdea.API.Services.Auth
 {
     public class OtpService
     {

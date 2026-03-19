@@ -3,7 +3,7 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 
 
-namespace BlindIdea.API.Services
+namespace BlindIdea.API.Services.Auth
 {
     public class EmailService
     {

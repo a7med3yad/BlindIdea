@@ -1,10 +1,10 @@
-﻿using BlindIdea.API.Dtos;
+﻿using BlindIdea.API.Dtos.Auth;
 using BlindIdea.API.Entities;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 
-namespace BlindIdea.API.Services
+namespace BlindIdea.API.Services.Auth
 {
     public class OAuthService
     {
@@ -50,11 +50,9 @@ namespace BlindIdea.API.Services
                 await _userManager.AddToRoleAsync(user, "User");
             }
 
-            // ✅ Always reload fresh from DB before generating tokens
             user = await _userManager.FindByEmailAsync(email)
                 ?? throw new Exception("User not found after creation");
 
-            // ✅ Generate tokens separately with clear error messages
             string accessToken;
             string refreshToken;
 
