@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BlindIdea.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7a854d387c332965c50963f24f2d62930ba9ad5a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a3fee7ecbfee0973985e21c5a65c35ae590ed313")]
 [assembly: System.Reflection.AssemblyProductAttribute("BlindIdea.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BlindIdea.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
