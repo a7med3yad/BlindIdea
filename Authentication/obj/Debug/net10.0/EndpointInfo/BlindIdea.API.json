@@ -302,18 +302,6 @@
         }
       }
     },
-    "/api/Auth/google-callback": {
-      "get": {
-        "tags": [
-          "Auth"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/api/Auth/login/github": {
       "get": {
         "tags": [
@@ -326,7 +314,7 @@
         }
       }
     },
-    "/api/Auth/github-callback": {
+    "/api/Auth/external-callback": {
       "get": {
         "tags": [
           "Auth"

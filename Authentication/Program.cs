@@ -57,19 +57,19 @@ namespace BlindIdea.API
             }).AddGoogle(options =>
             {
                 options.SignInScheme = IdentityConstants.ExternalScheme;
-                options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
-                options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
-                options.CallbackPath = "/api/Auth/google-callback";
-            }).AddGitHub(options =>
+                options.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
+                options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
+                options.CallbackPath = "/signin-google"; // ✅ middleware owns this, no controller needed
+            })
+            .AddGitHub(options =>
             {
                 options.SignInScheme = IdentityConstants.ExternalScheme;
-                options.ClientId = builder.Configuration["Authentication:GitHub:ClientId"];
-                options.ClientSecret = builder.Configuration["Authentication:GitHub:ClientSecret"];
-                options.CallbackPath = "/api/Auth/github-callback";
+                options.ClientId = builder.Configuration["Authentication:GitHub:ClientId"]!;
+                options.ClientSecret = builder.Configuration["Authentication:GitHub:ClientSecret"]!;
+                options.CallbackPath = "/signin-github"; // ✅ middleware owns this, no controller needed
                 options.Scope.Add("user:email");
             });
 
-            
 
             builder.Services.AddAuthorization(); // ✅ added
 

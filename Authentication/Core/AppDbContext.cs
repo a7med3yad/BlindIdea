@@ -10,6 +10,20 @@ namespace BlindIdea.API.Core
         {
         }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            base.OnModelCreating(builder);
 
+            // ✅ Explicitly configure the relationship
+            builder.Entity<RefreshToken>(entity =>
+            {
+                entity.HasKey(r => r.Id);
+
+                entity.HasOne(r => r.User)
+                      .WithMany()
+                      .HasForeignKey(r => r.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+        }
     }
 }

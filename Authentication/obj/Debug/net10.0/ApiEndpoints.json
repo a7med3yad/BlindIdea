@@ -48,6 +48,16 @@
   },
   {
     "ContainingType": "Authentication.Controllers.AuthController",
+    "Method": "ExternalCallback",
+    "RelativePath": "api/Auth/external-callback",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Authentication.Controllers.AuthController",
     "Method": "forgetpassword",
     "RelativePath": "api/Auth/forgot-password",
     "HttpMethod": "POST",
@@ -60,26 +70,6 @@
         "IsRequired": false
       }
     ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "Authentication.Controllers.AuthController",
-    "Method": "GithubCallback",
-    "RelativePath": "api/Auth/github-callback",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "Authentication.Controllers.AuthController",
-    "Method": "GoogleCallback",
-    "RelativePath": "api/Auth/google-callback",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
     "ReturnTypes": []
   },
   {

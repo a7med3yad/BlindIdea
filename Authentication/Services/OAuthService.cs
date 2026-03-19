@@ -1,8 +1,8 @@
-﻿using BlindIdea.API.Entities;
-using Microsoft.AspNetCore.Identity;
+﻿using BlindIdea.API.Dtos;
+using BlindIdea.API.Entities;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
-using BlindIdea.API.Dtos;
 
 namespace BlindIdea.API.Services
 {
@@ -10,7 +10,10 @@ namespace BlindIdea.API.Services
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly TokenService _tokenService;
-        public OAuthService(UserManager<ApplicationUser> userManager, TokenService tokenService)
+
+        public OAuthService(
+            UserManager<ApplicationUser> userManager,
+            TokenService tokenService)
         {
             _userManager = userManager;
             _tokenService = tokenService;
@@ -18,14 +21,19 @@ namespace BlindIdea.API.Services
 
         public async Task<AuthResponseDto> HandleOAuthLogin(AuthenticateResult result)
         {
-            var email = result.Principal?.FindFirst(ClaimTypes.Email)?.Value;
+            if (result?.Principal == null)
+                throw new Exception("Authentication result or principal is null");
 
-            if(string.IsNullOrEmpty(email))
-            {
-                throw new Exception("Email not provided by OAuth provider");
-            }
+            var email =
+                result.Principal.FindFirst(ClaimTypes.Email)?.Value ??
+                result.Principal.FindFirst("email")?.Value;
+
+            if (string.IsNullOrEmpty(email))
+                throw new Exception("Email not found from OAuth provider");
+
             var user = await _userManager.FindByEmailAsync(email);
-            if(user== null)
+
+            if (user == null)
             {
                 user = new ApplicationUser
                 {
@@ -33,15 +41,46 @@ namespace BlindIdea.API.Services
                     Email = email,
                     IsVerified = true
                 };
-                await _userManager.CreateAsync(user);
+
+                var createResult = await _userManager.CreateAsync(user);
+
+                if (!createResult.Succeeded)
+                    throw new Exception($"Failed to create user: {string.Join(", ", createResult.Errors.Select(e => e.Description))}");
+
                 await _userManager.AddToRoleAsync(user, "User");
             }
+
+            // ✅ Always reload fresh from DB before generating tokens
+            user = await _userManager.FindByEmailAsync(email)
+                ?? throw new Exception("User not found after creation");
+
+            // ✅ Generate tokens separately with clear error messages
+            string accessToken;
+            string refreshToken;
+
+            try
+            {
+                accessToken = await _tokenService.CreateAccessToken(user);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"AccessToken failed: {ex.Message}");
+            }
+
+            try
+            {
+                refreshToken = (await _tokenService.CreateRefreshToken(user)).Token;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"RefreshToken failed: {ex.Message}");
+            }
+
             return new AuthResponseDto
             {
-                AccessToken = await _tokenService.CreateAccessToken(user),
-                RefreshToken = (await _tokenService.CreateRefreshToken(user)).Token
+                AccessToken = accessToken,
+                RefreshToken = refreshToken
             };
-
         }
     }
 }
