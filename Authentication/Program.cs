@@ -1,10 +1,12 @@
 ﻿using BlindIdea.API.Services;
+using BlindIdea.API.UnitOfWorks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using System.Text;
+
 
 
 namespace BlindIdea.API
@@ -79,6 +81,8 @@ namespace BlindIdea.API
             builder.Services.AddScoped<OtpService>();
             builder.Services.AddScoped<OAuthService>();
             builder.Services.AddEndpointsApiExplorer();
+
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             var app = builder.Build();
 
