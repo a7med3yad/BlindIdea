@@ -240,64 +240,49 @@ namespace Authentication.Controllers
             if (!result.Succeeded) return BadRequest(result.Errors);
             return Ok("Password changed successfully");
         }
-
+        // ✅ Google Login
         [HttpGet("login/google")]
         public IActionResult GoogleLogin()
         {
+            var redirectUrl = Url.Action("ExternalCallback", "Auth");
             var props = new AuthenticationProperties
             {
-                RedirectUri = Url.Action("GoogleCallback")
+                RedirectUri = redirectUrl  // ✅ points to ExternalCallback
             };
             return Challenge(props, GoogleDefaults.AuthenticationScheme);
         }
 
-        [HttpGet("google-callback")]
-        public async Task<IActionResult> GoogleCallback()
-        {
-            var result = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);  
-
-            if (!result.Succeeded)
-                return BadRequest("Google authentication failed");
-
-            try
-            {
-                var response = await _oAuthService.HandleOAuthLogin(result);
-                return Ok(response); // ✅ Ok() lives here in the controller
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message); // ✅ BadRequest() lives here too
-            }
-        }
-
-
-
+        // ✅ GitHub Login
         [HttpGet("login/github")]
         public IActionResult GitHubLogin()
         {
+            var redirectUrl = Url.Action("ExternalCallback", "Auth");
             var props = new AuthenticationProperties
             {
-                RedirectUri = Url.Action("GithubCallback")
+                RedirectUri = redirectUrl  // ✅ same ExternalCallback for both
             };
             return Challenge(props, GitHubAuthenticationDefaults.AuthenticationScheme);
         }
 
-        [HttpGet("github-callback")]
-        public async Task<IActionResult> GithubCallback()
+        // ✅ One unified callback for both Google and GitHub
+        // Middleware handles /signin-google and /signin-github automatically
+        // then redirects here
+        [HttpGet("external-callback")]
+        public async Task<IActionResult> ExternalCallback()
         {
-            var result = await HttpContext.AuthenticateAsync(GitHubAuthenticationDefaults.AuthenticationScheme);
+            var result = await HttpContext.AuthenticateAsync(IdentityConstants.ExternalScheme);
 
             if (!result.Succeeded)
-                return BadRequest("Github authentication failed");
+                return Unauthorized($"External login failed: {result.Failure?.Message}");
 
             try
             {
                 var response = await _oAuthService.HandleOAuthLogin(result);
-                return Ok(response); // ✅ Ok() lives here in the controller
+                return Ok(response);
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message); // ✅ BadRequest() lives here too
+                return BadRequest(ex.Message);
             }
         }
 
