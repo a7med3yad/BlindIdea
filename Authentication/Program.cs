@@ -1,9 +1,12 @@
-﻿using BlindIdea.API.Application.Dashboards;
-using BlindIdea.API.Application.Ideas;
-using BlindIdea.API.Application.Teams;
-using BlindIdea.API.Infrastructure.Encryption;
-using BlindIdea.API.Services.Auth;
-using BlindIdea.API.UnitOfWorks;
+﻿using BlindIdea.Application.Services.Implementation.Dashboards;
+using BlindIdea.Application.Services.Implementation.Ideas;
+using BlindIdea.Application.Services.Implementation.Teams;
+using BlindIdea.Domain.Abstraction;
+using BlindIdea.Domain.Entities;
+using BlindIdea.Infrastructure.Implementation.Auth;
+using BlindIdea.Infrastructure.Implementation.Encryption;
+using BlindIdea.Infrastructure.Implementation.UnitOfWorks;
+using BlindIdea.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -26,14 +29,14 @@ namespace BlindIdea.API
 
             builder.Services.AddOpenApi();
 
-            builder.Services.AddDbContext<Core.AppDbContext>(options =>
+            builder.Services.AddDbContext<AppDbContext>(options =>
             {
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
             });
 
             // ✅ AddIdentity FIRST
-            builder.Services.AddIdentity<Entities.ApplicationUser, IdentityRole>()
-                .AddEntityFrameworkStores<Core.AppDbContext>()
+            builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+                .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
 
             builder.Services.ConfigureApplicationCookie(options =>

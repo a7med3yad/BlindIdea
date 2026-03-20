@@ -1,5 +1,4 @@
-﻿using BlindIdea.API.Infrastructure.Encryption;
-using Microsoft.AspNetCore.Http;
+﻿using BlindIdea.Infrastructure.Implementation.Encryption;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BlindIdea.API.Controllers

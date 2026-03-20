@@ -1,7 +1,5 @@
-﻿using BlindIdea.API.Application.Ideas;
-using BlindIdea.API.Dtos;
-using BlindIdea.API.Dtos.Ideas;
-using BlindIdea.API.Services;
+﻿using BlindIdea.Application.Dtos.Ideas;
+using BlindIdea.Application.Services.Implementation.Ideas;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;

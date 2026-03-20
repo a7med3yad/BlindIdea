@@ -1,4 +1,4 @@
-﻿using BlindIdea.API.Application.Dashboards;
+﻿using BlindIdea.Application.Services.Implementation.Dashboards;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
