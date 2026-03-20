@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="Authentication/BlindIdea.API.csproj" />
+  <Project Path="BlindIdea.Infrastructure/BlindIdea.Infrastructure.csproj" Id="f6006750-bdb2-4ff9-b09e-7dd766bec9ea" />
 </Solution>

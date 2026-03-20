@@ -1,4 +1,5 @@
-﻿using BlindIdea.API.Application.Ideas;
+﻿using BlindIdea.API.Application.Dashboards;
+using BlindIdea.API.Application.Ideas;
 using BlindIdea.API.Application.Teams;
 using BlindIdea.API.Infrastructure.Encryption;
 using BlindIdea.API.Services.Auth;
@@ -41,12 +42,11 @@ namespace BlindIdea.API
                 options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
             });
 
-            // ✅ AddAuthentication AFTER AddIdentity to override cookie defaults
             builder.Services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme; // ✅ added
+                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme; 
             })
             .AddJwtBearer(options =>
             {
@@ -90,6 +90,7 @@ namespace BlindIdea.API
             builder.Services.AddScoped<TeamService>();
             builder.Services.AddScoped<EncryptionService>();
             builder.Services.AddScoped<IdeaService>();
+            builder.Services.AddScoped<DashboardService>();
 
 
             var app = builder.Build();
