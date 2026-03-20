@@ -1,4 +1,6 @@
 <Solution>
   <Project Path="Authentication/BlindIdea.API.csproj" />
+  <Project Path="BlindIdea.Application/BlindIdea.Application.csproj" Id="a258d4a3-46d9-43a8-bbb0-899522c7f3a0" />
+  <Project Path="BlindIdea.Domain/BlindIdea.Domain.csproj" Id="50f96a1b-8f8e-497b-9ce7-d32101c8ca6a" />
   <Project Path="BlindIdea.Infrastructure/BlindIdea.Infrastructure.csproj" Id="f6006750-bdb2-4ff9-b09e-7dd766bec9ea" />
 </Solution>

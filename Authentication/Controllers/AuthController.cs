@@ -1,6 +1,4 @@
-﻿using BlindIdea.API.Core;
-using BlindIdea.API.Entities;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -8,8 +6,10 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Google;
 using AspNet.Security.OAuth.GitHub;
 using Microsoft.AspNetCore.Authentication;
-using BlindIdea.API.Dtos.Auth;
-using BlindIdea.API.Services.Auth;
+using BlindIdea.Domain.Entities;
+using BlindIdea.Infrastructure.Implementation.Auth;
+using BlindIdea.Infrastructure.Persistence;
+using BlindIdea.Application.Dtos.Auth;
 
 namespace Authentication.Controllers
 {
