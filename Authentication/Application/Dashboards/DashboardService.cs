@@ -1,0 +1,103 @@
+﻿using BlindIdea.API.Dtos;
+using BlindIdea.API.Entities;
+using BlindIdea.API.Infrastructure.Encryption;
+using BlindIdea.API.UnitOfWorks;
+using Microsoft.AspNetCore.Identity;
+
+namespace BlindIdea.API.Application.Dashboards
+{
+    public class DashboardService
+    {
+        private readonly IUnitOfWork _uow;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly EncryptionService _encryption;
+
+        public DashboardService(
+            IUnitOfWork uow,
+            UserManager<ApplicationUser> userManager,
+            EncryptionService encryption)
+        {
+            _uow = uow;
+            _userManager = userManager;
+            _encryption = encryption;
+        }
+
+        public async Task<DashboardResponseDto> GetDashboardAsync(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId)
+                ?? throw new Exception("User not found");
+
+            if (user.TeamId == null)
+                throw new Exception("You must be in a team to view dashboard");
+
+            var team = await _uow.Teams.GetTeamWithMembersAsync(user.TeamId)
+                ?? throw new Exception("Team not found");
+
+            var ideas = (await _uow.Ideas.GetTeamIdeaAsync(user.TeamId)).ToList();
+
+            var allRatings = ideas.SelectMany(i => i.Ratings).ToList();
+
+            return new DashboardResponseDto
+            {
+                Team = GetTeamSummary(team),
+                Ideas = GetIdeaSummary(ideas, allRatings, userId),
+                TopIdeas = GetTopIdeas(ideas),
+                RecentIdeas = GetRecentIdeas(ideas)
+            };
+        }
+
+        private TeamSummaryDto GetTeamSummary(Team team) => new()
+        {
+            TeamName = team.Name,
+            MemberCount = team.Members.Count,
+            CreatedAt = team.CreatedAt
+        };
+
+        private IdeaSummaryDto GetIdeaSummary(
+            List<Idea> ideas,
+            List<Rating> allRatings,
+            string userId) => new()
+            {
+                TotalIdeas = ideas.Count,
+                TotalRatings = allRatings.Count,
+                OverallAverageRating = allRatings.Any()
+                ? Math.Round(allRatings.Average(r => r.Score), 1)
+                : 0,
+
+                IdeasSubmittedByMe = ideas.Count(i => i.UserId == userId),
+
+                IdeasRatedByMe = allRatings.Count(r => r.UserId == userId)
+            };
+
+        private List<TopIdeaDto> GetTopIdeas(List<Idea> ideas) =>
+            ideas
+                .Where(i => i.Ratings.Any())
+                .OrderByDescending(i => i.Ratings.Average(r => r.Score))
+                .Take(5)
+                .Select(i => new TopIdeaDto
+                {
+                    Id = i.Id,
+                    Title = _encryption.Decrypt(i.EncryptedTitle),  // ✅ decrypt
+                    AverageRating = Math.Round(i.Ratings.Average(r => r.Score), 1),
+                    RatingCount = i.Ratings.Count,
+                    CreatedAt = i.CreatedAt
+                })
+                .ToList();
+
+        private List<RecentIdeaDto> GetRecentIdeas(List<Idea> ideas) =>
+            ideas
+                .OrderByDescending(i => i.CreatedAt)
+                .Take(5)
+                .Select(i => new RecentIdeaDto
+                {
+                    Id = i.Id,
+                    Title = _encryption.Decrypt(i.EncryptedTitle), 
+                    AverageRating = i.Ratings.Any()
+                        ? Math.Round(i.Ratings.Average(r => r.Score), 1)
+                        : 0,
+                    RatingCount = i.Ratings.Count,
+                    CreatedAt = i.CreatedAt
+                })
+                .ToList();
+    }
+}
