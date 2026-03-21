@@ -1,4 +1,4 @@
-﻿using AspNet.Security.OAuth.GitHub;
+using AspNet.Security.OAuth.GitHub;
 using BlindIdea.Application.Dtos.Auth;
 using BlindIdea.Application.Services.Abstraction;
 using BlindIdea.Application.Services.Abstraction.Auth;
@@ -148,22 +148,24 @@ namespace Authentication.Controllers
 
         // ✅ Google Login
         [HttpGet("login/google")]
-        public IActionResult GoogleLogin()
+        public IActionResult GoogleLogin(string? returnUrl)
         {
             var props = new AuthenticationProperties
             {
-                RedirectUri = Url.Action("ExternalCallback", "Auth")
+                RedirectUri = Url.Action("ExternalCallback", "Auth"),
+                Items = { { "returnUrl", returnUrl ?? "" } }
             };
             return Challenge(props, GoogleDefaults.AuthenticationScheme);
         }
 
         // ✅ GitHub Login
         [HttpGet("login/github")]
-        public IActionResult GitHubLogin()
+        public IActionResult GitHubLogin(string? returnUrl)
         {
             var props = new AuthenticationProperties
             {
-                RedirectUri = Url.Action("ExternalCallback", "Auth")
+                RedirectUri = Url.Action("ExternalCallback", "Auth"),
+                Items = { { "returnUrl", returnUrl ?? "" } }
             };
             return Challenge(props, GitHubAuthenticationDefaults.AuthenticationScheme);
         }
@@ -185,9 +187,24 @@ namespace Authentication.Controllers
 
             try
             {
-                // ✅ Just pass email to service — no AuthenticateResult dependency
                 var response = await _authService.HandleOAuthLoginAsync(email);
-                return Ok(response);
+
+                // Read the returnUrl stored during login initiation
+                var returnUrl = result.Properties?.Items.ContainsKey("returnUrl") == true
+                    ? result.Properties.Items["returnUrl"]
+                    : null;
+
+                // Build the frontend callback URL with tokens
+                if (string.IsNullOrEmpty(returnUrl))
+                    returnUrl = "http://localhost:3000/external-callback";
+
+                var separator = returnUrl.Contains('?') ? '&' : '?';
+                var redirectUrl = $"{returnUrl}{separator}accessToken={Uri.EscapeDataString(response.AccessToken)}&refreshToken={Uri.EscapeDataString(response.RefreshToken)}";
+
+                // Clean up external cookie
+                await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+
+                return Redirect(redirectUrl);
             }
             catch (Exception ex) { return BadRequest(ex.Message); }
         }
