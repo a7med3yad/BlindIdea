@@ -16,6 +16,7 @@ using BlindIdea.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using System.Text;
@@ -34,10 +35,23 @@ namespace BlindIdea.API
             builder.Services.AddControllers();
 
             builder.Services.AddOpenApi();
-
             builder.Services.AddDbContext<AppDbContext>(options =>
             {
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+                options.UseSqlServer(
+                    builder.Configuration.GetConnectionString("DefaultConnection"),
+                    sqlOptions =>
+                    {
+                        // ✅ Auto retry on transient failures
+                        sqlOptions.EnableRetryOnFailure(
+                            maxRetryCount: 3,
+                            maxRetryDelay: TimeSpan.FromSeconds(5),
+                            errorNumbersToAdd: null
+                        );
+
+                        // ✅ Longer timeout
+                        sqlOptions.CommandTimeout(60);
+                    }
+                );
             });
 
             // ✅ AddIdentity FIRST
@@ -103,6 +117,21 @@ namespace BlindIdea.API
 
             builder.Services.AddEndpointsApiExplorer();
 
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("BlindIdeaPolicy", policy =>
+                {
+                    policy
+                        .WithOrigins(
+                            "http://localhost:3000",    // React dev server
+                            "http://localhost:5173",    // Vite dev server
+                            "https://yourdomain.com"    // production domain later
+                        )
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
+                });
+            });
 
             var app = builder.Build();
 
@@ -127,6 +156,8 @@ namespace BlindIdea.API
                     }
                 }
             }
+            app.UseCors("BlindIdeaPolicy");
+
 
             app.UseHttpsRedirection();
 
