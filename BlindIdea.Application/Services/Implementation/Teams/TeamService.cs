@@ -122,18 +122,20 @@ namespace BlindIdea.Application.Services.Implementation.Teams
             if (team.AdminId != userId)
                 throw new Exception("Only admin can delete the team");
 
-            // ✅ Remove all members from team
-            foreach (var member in team.Members)
+            // ✅ Copy to a separate list first to avoid modifying collection during iteration
+            var members = team.Members.ToList();
+
+            foreach (var member in members)
             {
                 member.TeamId = null;
                 await _userManager.UpdateAsync(member);
             }
 
-            // ✅ Remove Admin role from creator
+            // ✅ Remove Admin role from the admin user
             if (await _userManager.IsInRoleAsync(user, "Admin"))
                 await _userManager.RemoveFromRoleAsync(user, "Admin");
 
-            // ✅ Delete outside loop
+            // ✅ Delete and save OUTSIDE the loop
             _uow.Teams.Delete(team);
             await _uow.SaveChangesAsync();
         }

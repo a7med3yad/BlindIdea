@@ -10,11 +10,11 @@ namespace BlindIdea.Infrastructure.Implementation.Auth
     public class OAuthService:IOAuthService
     {
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly TokenService _tokenService;
+        private readonly ITokenService _tokenService;
 
         public OAuthService(
             UserManager<ApplicationUser> userManager,
-            TokenService tokenService)
+            ITokenService tokenService)
         {
             _userManager = userManager;
             _tokenService = tokenService;

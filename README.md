@@ -1,433 +1,229 @@
-# 💡 IdeaVault — Backend API
+<p align="center">
+  <img src="Images/logo.png" alt="BlindIdea Logo" width="500"/>
+</p>
 
-> **Stack:** .NET 10 · Four-Layer Architecture (API · Core · Application · Infrastructure)
+<p align="center">
+  <b>Innovation without ego.</b>
+</p>
 
 ---
 
-## Table of Contents
+# BlindIdea API
 
-- [💡 IdeaVault — Backend API](#-ideavault--backend-api)
-  - [Table of Contents](#table-of-contents)
-  - [Project Overview](#project-overview)
+> **Innovation without ego.**
+
+A platform designed to encourage **anonymous idea sharing** within teams while maintaining **privacy and security**. Built with ASP.NET Core, Clean Architecture, JWT Authentication, and AES-256 encryption.
+
+---
+
+## 🔴 Table of Contents
+
+- [BlindIdea API](#blindidea-api)
+  - [🔴 Table of Contents](#-table-of-contents)
+  - [Overview](#overview)
   - [Architecture](#architecture)
+    - [Dependency Rules](#dependency-rules)
   - [Project Structure](#project-structure)
-  - [Layer Responsibilities](#layer-responsibilities)
-    - [Layer 1 — API (`IdeaVault.API`)](#layer-1--api-ideavaultapi)
-    - [Layer 2 — Core (`IdeaVault.Core`)](#layer-2--core-ideavaultcore)
-    - [Layer 3 — Application (`IdeaVault.Application`)](#layer-3--application-ideavaultapplication)
-    - [Layer 4 — Infrastructure (`IdeaVault.Infrastructure`)](#layer-4--infrastructure-ideavaultinfrastructure)
-  - [Domain Models](#domain-models)
-  - [Authentication Flow](#authentication-flow)
-    - [Registration](#registration)
-    - [Login](#login)
-    - [Forgot Password](#forgot-password)
-  - [API Endpoints](#api-endpoints)
-    - [Auth](#auth)
-    - [Teams](#teams)
-    - [Ideas](#ideas)
-    - [Dashboard](#dashboard)
+  - [Tech Stack](#tech-stack)
+  - [Features](#features)
+    - [Authentication](#authentication)
+    - [Team Management](#team-management)
+    - [Anonymous Idea Sharing](#anonymous-idea-sharing)
+    - [Anonymous Rating System](#anonymous-rating-system)
+    - [Dashboard \& Insights](#dashboard--insights)
   - [Getting Started](#getting-started)
     - [Prerequisites](#prerequisites)
-    - [Create the Solution](#create-the-solution)
-    - [Install NuGet Packages](#install-nuget-packages)
-  - [Configuration](#configuration)
-  - [Database Setup](#database-setup)
-  - [Running the Project](#running-the-project)
-  - [Testing](#testing)
+    - [Installation](#installation)
+    - [Access Scalar API Docs](#access-scalar-api-docs)
+  - [Environment Variables](#environment-variables)
+  - [API Endpoints](#api-endpoints)
+    - [Auth](#auth)
+    - [Team](#team)
+    - [Ideas](#ideas)
+    - [Dashboard](#dashboard)
+  - [Authentication Flow](#authentication-flow)
+    - [Register + Verify](#register--verify)
+    - [Login](#login)
+    - [Refresh Token](#refresh-token)
+    - [Google / GitHub OAuth](#google--github-oauth)
+    - [Using Bearer Token in Requests](#using-bearer-token-in-requests)
+  - [Security](#security)
+    - [JWT Tokens](#jwt-tokens)
+    - [OTP Protection](#otp-protection)
+    - [Idea Encryption](#idea-encryption)
+    - [Anonymity](#anonymity)
+  - [Database Schema](#database-schema)
+  - [Design Patterns Used](#design-patterns-used)
+  - [Branding](#branding)
 
 ---
 
-## Project Overview
+## Overview
 
-IdeaVault is a collaborative idea management platform. Users register, join teams, and anonymously submit ideas that peers can rate. The backend is built with **.NET 10** using a clean four-layer architecture.
+BlindIdea allows teams to share ideas **anonymously** — no one knows who submitted what. Ideas are **AES-256 encrypted** in the database and only decrypted for team members. Ratings are also anonymous to prevent bias.
 
-**Core Features:**
-- Email-based registration with OTP verification
-- JWT access + refresh token authentication
-- Password reset via email OTP
-- Team creation — one team per user, creator becomes admin
-- Admin can add members to the team
-- Anonymous idea submission — author identity is hidden from all consumers
-- Idea rating (1–5 stars) by any user including the author
-- Dashboard with aggregated idea analytics
+```
+Register → Verify Email (OTP) → Create/Join Team → Submit Ideas → Rate Ideas → View Dashboard
+```
 
 ---
 
 ## Architecture
 
+Clean Architecture with 4 layers — each layer only depends on the layer inside it:
+
 ```
-┌─────────────────────────────────────────┐
-│              API Layer                  │  ← Controllers, Middleware, DTOs, Filters
-├─────────────────────────────────────────┤
-│           Application Layer             │  ← Use Cases, CQRS Commands/Queries, Validators
-├─────────────────────────────────────────┤
-│             Core Layer                  │  ← Entities, Interfaces, Domain Events, Enums
-├─────────────────────────────────────────┤
-│         Infrastructure Layer            │  ← EF Core, Repositories, Email, JWT, Caching
-└─────────────────────────────────────────┘
+┌──────────────────────────────────────┐
+│           BlindIdea.API              │  Controllers, Program.cs, Middleware
+├──────────────────────────────────────┤
+│       BlindIdea.Application          │  Services, DTOs, Interfaces
+├──────────────────────────────────────┤
+│         BlindIdea.Domain             │  Entities, Repository Interfaces
+├──────────────────────────────────────┤
+│      BlindIdea.Infrastructure        │  DB, Repositories, Email, Encryption
+└──────────────────────────────────────┘
 ```
 
-Dependencies flow **inward only**: API → Application → Core ← Infrastructure
+### Dependency Rules
+
+```
+Domain          →  depends on NOTHING
+Application     →  depends on Domain
+Infrastructure  →  depends on Domain + Application
+API             →  depends on Application + Infrastructure
+```
 
 ---
 
 ## Project Structure
 
 ```
-IdeaVault/
-├── IdeaVault.sln
+BlindIdea/
 │
-├── src/
-│   ├── IdeaVault.API/                    # Layer 1 — Presentation
-│   │   ├── Controllers/
-│   │   │   ├── AuthController.cs
-│   │   │   ├── TeamsController.cs
-│   │   │   ├── IdeasController.cs
-│   │   │   └── DashboardController.cs
-│   │   ├── Middleware/
-│   │   │   ├── ExceptionHandlingMiddleware.cs
-│   │   │   └── RequestLoggingMiddleware.cs
-│   │   ├── Filters/
-│   │   │   └── ValidationFilter.cs
-│   │   ├── DTOs/
-│   │   │   ├── Auth/
-│   │   │   ├── Teams/
-│   │   │   ├── Ideas/
-│   │   │   └── Dashboard/
-│   │   ├── Extensions/
-│   │   │   └── ServiceCollectionExtensions.cs
-│   │   ├── appsettings.json
-│   │   ├── appsettings.Development.json
-│   │   └── Program.cs
-│   │
-│   ├── IdeaVault.Core/                   # Layer 2 — Domain Core
-│   │   ├── Entities/
-│   │   │   ├── User.cs
-│   │   │   ├── Team.cs
-│   │   │   ├── TeamMember.cs
-│   │   │   ├── Idea.cs
-│   │   │   ├── IdeaRating.cs
-│   │   │   └── OtpCode.cs
-│   │   ├── Interfaces/
-│   │   │   ├── Repositories/
-│   │   │   │   ├── IUserRepository.cs
-│   │   │   │   ├── ITeamRepository.cs
-│   │   │   │   ├── IIdeaRepository.cs
-│   │   │   │   └── IOtpRepository.cs
-│   │   │   ├── Services/
-│   │   │   │   ├── IEmailService.cs
-│   │   │   │   ├── IJwtService.cs
-│   │   │   │   └── IOtpService.cs
-│   │   │   └── IUnitOfWork.cs
-│   │   ├── Enums/
-│   │   │   ├── OtpPurpose.cs
-│   │   │   └── TeamRole.cs
-│   │   └── Exceptions/
-│   │       ├── DomainException.cs
-│   │       ├── NotFoundException.cs
-│   │       └── UnauthorizedException.cs
-│   │
-│   ├── IdeaVault.Application/            # Layer 3 — Application Logic
+├── BlindIdea.API/
+│   ├── Controllers/
+│   │   ├── AuthController.cs
+│   │   ├── TeamController.cs
+│   │   ├── IdeaController.cs
+│   │   └── DashboardController.cs
+│   └── Program.cs
+│
+├── BlindIdea.Application/
+│   ├── Dtos/
 │   │   ├── Auth/
-│   │   │   ├── Commands/
-│   │   │   │   ├── RegisterCommand.cs
-│   │   │   │   ├── VerifyRegisterOtpCommand.cs
-│   │   │   │   ├── LoginCommand.cs
-│   │   │   │   ├── ForgotPasswordCommand.cs
-│   │   │   │   ├── ResetPasswordCommand.cs
-│   │   │   │   └── RefreshTokenCommand.cs
-│   │   │   └── Handlers/
-│   │   │       └── ...Handlers.cs
 │   │   ├── Teams/
-│   │   │   ├── Commands/
-│   │   │   │   ├── CreateTeamCommand.cs
-│   │   │   │   └── AddMemberCommand.cs
-│   │   │   └── Queries/
-│   │   │       └── GetTeamQuery.cs
 │   │   ├── Ideas/
-│   │   │   ├── Commands/
-│   │   │   │   ├── CreateIdeaCommand.cs
-│   │   │   │   └── RateIdeaCommand.cs
-│   │   │   └── Queries/
-│   │   │       ├── GetIdeasQuery.cs
-│   │   │       └── GetIdeaByIdQuery.cs
-│   │   ├── Dashboard/
-│   │   │   └── Queries/
-│   │   │       └── GetDashboardInsightsQuery.cs
-│   │   ├── Common/
-│   │   │   ├── Behaviors/
-│   │   │   │   ├── ValidationBehavior.cs
-│   │   │   │   └── LoggingBehavior.cs
-│   │   │   └── Mappings/
-│   │   │       └── MappingProfile.cs
-│   │   └── DependencyInjection.cs
-│   │
-│   └── IdeaVault.Infrastructure/         # Layer 4 — Infrastructure
-│       ├── Persistence/
-│       │   ├── AppDbContext.cs
-│       │   ├── Configurations/
-│       │   │   ├── UserConfiguration.cs
-│       │   │   ├── TeamConfiguration.cs
-│       │   │   ├── IdeaConfiguration.cs
-│       │   │   └── IdeaRatingConfiguration.cs
-│       │   ├── Repositories/
-│       │   │   ├── UserRepository.cs
-│       │   │   ├── TeamRepository.cs
-│       │   │   ├── IdeaRepository.cs
-│       │   │   └── OtpRepository.cs
-│       │   ├── Migrations/
-│       │   └── UnitOfWork.cs
-│       ├── Services/
-│       │   ├── JwtService.cs
-│       │   ├── OtpService.cs
-│       │   └── EmailService.cs
-│       ├── Caching/
-│       │   └── CacheService.cs
-│       └── DependencyInjection.cs
+│   │   └── Dashboards/
+│   └── Services/
+│       ├── Abstraction/
+│       │   ├── IAuthService.cs
+│       │   ├── ITeamService.cs
+│       │   ├── IIdeaService.cs
+│       │   └── IDashboardService.cs
+│       └── Implementation/
+│           ├── Auth/
+│           ├── Teams/
+│           ├── Ideas/
+│           └── Dashboards/
 │
-└── tests/
-    ├── IdeaVault.UnitTests/
-    └── IdeaVault.IntegrationTests/
+├── BlindIdea.Domain/
+│   ├── Entities/
+│   │   ├── ApplicationUser.cs
+│   │   ├── Team.cs
+│   │   ├── Idea.cs
+│   │   ├── Rating.cs
+│   │   └── RefreshToken.cs
+│   └── Abstraction/
+│       ├── Repositories/
+│       │   ├── IGenericRepository.cs
+│       │   ├── ITeamRepository.cs
+│       │   ├── IIdeaRepository.cs
+│       │   └── IRatingRepository.cs
+│       ├── IUnitOfWork.cs
+│       └── Services/
+│
+└── BlindIdea.Infrastructure/
+    ├── Implementation/
+    │   ├── Auth/
+    │   │   ├── AuthService.cs
+    │   │   ├── TokenService.cs
+    │   │   ├── EmailService.cs
+    │   │   ├── OtpService.cs
+    │   │   └── OAuthService.cs
+    │   ├── Encryption/
+    │   │   └── EncryptionService.cs
+    │   ├── Repositories/
+    │   │   ├── GenericRepository.cs
+    │   │   ├── TeamRepository.cs
+    │   │   ├── IdeaRepository.cs
+    │   │   └── RatingRepository.cs
+    │   └── UnitOfWorks/
+    │       └── UnitOfWork.cs
+    └── Persistence/
+        └── AppDbContext.cs
 ```
 
 ---
 
-## Layer Responsibilities
+## Tech Stack
 
-### Layer 1 — API (`IdeaVault.API`)
-
-The entry point of the application. Handles HTTP concerns only.
-
-- **Controllers** receive HTTP requests and delegate to MediatR commands/queries
-- **DTOs** define request/response shapes (never expose domain entities)
-- **Middleware** handles cross-cutting concerns: exceptions, logging, correlation IDs
-- **Filters** run validation before hitting the controller action
-- **Program.cs** wires up all services and pipeline
-
-```csharp
-// Program.cs — .NET 10 minimal hosting
-var builder = WebApplication.CreateBuilder(args);
-
-builder.Services
-    .AddApplication()           // Application layer DI
-    .AddInfrastructure(builder.Configuration)  // Infrastructure layer DI
-    .AddApiServices();          // API-specific: Swagger, CORS, Auth middleware
-
-var app = builder.Build();
-app.UseMiddleware<ExceptionHandlingMiddleware>();
-app.UseAuthentication();
-app.UseAuthorization();
-app.MapControllers();
-app.Run();
-```
-
----
-
-### Layer 2 — Core (`IdeaVault.Core`)
-
-The **heart of the system**. Contains pure domain logic with zero external dependencies.
-
-- **Entities** are plain C# classes with domain behavior
-- **Interfaces** define contracts that Infrastructure must implement (Dependency Inversion)
-- **Enums** represent domain states
-- **Exceptions** model domain rule violations
-
-```csharp
-// Core/Entities/Idea.cs
-public class Idea
-{
-    public Guid Id { get; private set; }
-    public string Name { get; private set; }
-    public string Description { get; private set; }
-    public string Tags { get; private set; }
-    public Guid AuthorId { get; private set; }   // stored, but NEVER returned in queries
-    public Guid TeamId { get; private set; }
-    public DateTime CreatedAt { get; private set; }
-    public ICollection<IdeaRating> Ratings { get; private set; } = [];
-
-    public double AverageRating => Ratings.Any()
-        ? Ratings.Average(r => r.Score)
-        : 0;
-
-    public static Idea Create(string name, string description, string tags, Guid authorId, Guid teamId)
-    {
-        if (string.IsNullOrWhiteSpace(name)) throw new DomainException("Idea name is required.");
-        return new Idea
-        {
-            Id = Guid.NewGuid(),
-            Name = name,
-            Description = description,
-            Tags = tags,
-            AuthorId = authorId,
-            TeamId = teamId,
-            CreatedAt = DateTime.UtcNow
-        };
-    }
-}
-```
-
----
-
-### Layer 3 — Application (`IdeaVault.Application`)
-
-Orchestrates use cases using the **CQRS + MediatR** pattern.
-
-- **Commands** mutate state (Register, CreateIdea, RateIdea)
-- **Queries** read state (GetIdeas, GetDashboard)
-- **Handlers** implement the business logic for each command/query
-- **Behaviors** add cross-cutting pipeline steps (validation, logging)
-- **Validators** use FluentValidation
-
-```csharp
-// Application/Ideas/Commands/CreateIdeaCommand.cs
-public record CreateIdeaCommand(
-    string Name,
-    string Description,
-    string Tags,
-    Guid TeamId
-) : IRequest<Guid>;
-
-// Application/Ideas/Handlers/CreateIdeaHandler.cs
-public class CreateIdeaHandler(IIdeaRepository ideas, IUnitOfWork uow, ICurrentUser currentUser)
-    : IRequestHandler<CreateIdeaCommand, Guid>
-{
-    public async Task<Guid> Handle(CreateIdeaCommand cmd, CancellationToken ct)
-    {
-        var idea = Idea.Create(cmd.Name, cmd.Description, cmd.Tags, currentUser.Id, cmd.TeamId);
-        await ideas.AddAsync(idea, ct);
-        await uow.SaveChangesAsync(ct);
-        return idea.Id;
-    }
-}
-```
-
----
-
-### Layer 4 — Infrastructure (`IdeaVault.Infrastructure`)
-
-Implements all external concerns: database, email, caching, JWT.
-
-- **AppDbContext** — EF Core 10 with PostgreSQL (or SQL Server)
-- **Repositories** implement `IRepository<T>` from Core
-- **JwtService** issues access tokens + refresh tokens
-- **OtpService** generates and validates 6-digit codes with TTL
-- **EmailService** sends OTP emails via SMTP / SendGrid
-
-```csharp
-// Infrastructure/Services/JwtService.cs
-public class JwtService(IOptions<JwtSettings> settings) : IJwtService
-{
-    public string GenerateAccessToken(User user)
-    {
-        var claims = new[]
-        {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Email, user.Email),
-        };
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.Value.Secret));
-        var token = new JwtSecurityToken(
-            issuer: settings.Value.Issuer,
-            audience: settings.Value.Audience,
-            claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(15),
-            signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
-        );
-        return new JwtSecurityTokenHandler().WriteToken(token);
-    }
-
-    public string GenerateRefreshToken() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
-}
-```
-
----
-
-## Domain Models
-
-| Entity | Key Fields |
+| Layer | Technology |
 |---|---|
-| `User` | Id, Email, PasswordHash, IsVerified, RefreshToken, RefreshTokenExpiry |
-| `OtpCode` | Id, UserId, Code (hashed), Purpose (Register/ResetPassword), ExpiresAt, IsUsed |
-| `Team` | Id, Name, AdminUserId, CreatedAt |
-| `TeamMember` | TeamId, UserId, Role (Admin/Member) |
-| `Idea` | Id, Name, Description, Tags, AuthorId (private), TeamId, CreatedAt |
-| `IdeaRating` | Id, IdeaId, RaterId, Score (1–5), CreatedAt |
-
-**Anonymity Rule:** `AuthorId` is stored in the database for auditing, but the application layer **never maps it to any response DTO**. Queries for ideas always omit the author field entirely.
-
----
-
-## Authentication Flow
-
-### Registration
-```
-POST /api/auth/register       → saves user (unverified), sends OTP email
-POST /api/auth/verify-register → validates OTP, marks user verified, returns tokens
-```
-
-### Login
-```
-POST /api/auth/login          → validates credentials, returns access + refresh tokens
-POST /api/auth/refresh        → validates refresh token, issues new token pair
-```
-
-### Forgot Password
-```
-POST /api/auth/forgot-password → sends OTP to registered email
-POST /api/auth/reset-password  → validates OTP + new password, returns tokens
-```
-
-**Token Strategy:**
-- Access Token: JWT, 15-minute TTL, signed with HS256
-- Refresh Token: opaque random bytes, 7-day TTL, stored hashed in DB
+| Framework | ASP.NET Core 10 |
+| Language | C# |
+| Database | SQL Server |
+| ORM | Entity Framework Core |
+| Authentication | ASP.NET Identity + JWT Bearer |
+| OAuth | Google + GitHub |
+| Email | MailKit + Gmail SMTP |
+| Encryption | AES-256 |
+| API Docs | Scalar |
+| Architecture | Clean Architecture |
+| Pattern | Repository + Unit of Work |
 
 ---
 
-## API Endpoints
+## Features
 
-### Auth
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| POST | `/api/auth/register` | None | Register with email + password |
-| POST | `/api/auth/verify-register` | None | Submit OTP to verify email |
-| POST | `/api/auth/login` | None | Login, receive tokens |
-| POST | `/api/auth/refresh` | None | Refresh access token |
-| POST | `/api/auth/forgot-password` | None | Request password reset OTP |
-| POST | `/api/auth/reset-password` | None | Reset password with OTP |
+### Authentication
+- Register with email + OTP verification
+- Login with JWT access token + refresh token
+- Forgot password via OTP email
+- Change password
+- Google OAuth login
+- GitHub OAuth login
+- Role-based authorization (Admin / User)
+- OTP rate limiting (max 3 per 10 minutes)
+- OTP expiration (5 minutes)
+- Refresh token rotation (7 days)
 
-### Teams
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| POST | `/api/teams` | Required | Create team (user becomes admin) |
-| GET | `/api/teams/me` | Required | Get my team |
-| POST | `/api/teams/members` | Admin only | Add member by email |
-| GET | `/api/teams/members` | Required | List team members |
+### Team Management
+- Create a team → automatically become Admin
+- Join team via unique invite code
+- View team info and members
+- Regenerate invite code
+- Remove members (Admin only)
+- Leave team
+- Delete team (Admin only)
 
-**Business Rule:** A user can only belong to one team. Creating a second team returns `409 Conflict`.
+### Anonymous Idea Sharing
+- Submit ideas with title and content
+- Ideas encrypted with AES-256 before storing
+- Ideas displayed anonymously — no author shown
+- Delete your own ideas
 
-### Ideas
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| POST | `/api/ideas` | Required | Submit idea (anonymous) |
-| GET | `/api/ideas` | Required | List ideas (no author field) |
-| GET | `/api/ideas/{id}` | Required | Get idea details |
-| POST | `/api/ideas/{id}/rate` | Required | Rate idea (1–5 stars) |
+### Anonymous Rating System
+- Rate ideas on a scale of 1 to 5
+- Ratings are anonymous
+- Update or remove your rating
+- Cannot rate your own idea
 
-### Dashboard
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| GET | `/api/dashboard` | Required | Team idea insights |
-
-**Dashboard Response:**
-```json
-{
-  "totalIdeas": 42,
-  "averageRating": 3.8,
-  "topRatedIdeas": [...],
-  "ratingDistribution": { "1": 3, "2": 7, "3": 12, "4": 14, "5": 6 },
-  "ideasPerDay": [...],
-  "mostActiveDay": "2025-03-12"
-}
-```
+### Dashboard & Insights
+- Total ideas and ratings
+- Overall average rating
+- Top 5 rated ideas
+- 5 most recent ideas
+- Personal stats (ideas submitted, ideas rated)
 
 ---
 
@@ -435,130 +231,295 @@ POST /api/auth/reset-password  → validates OTP + new password, returns tokens
 
 ### Prerequisites
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- PostgreSQL 16+ (or SQL Server 2022)
-- SMTP credentials (or SendGrid API key)
+- .NET 10 SDK
+- SQL Server (Express or full)
+- Gmail account with App Password
+- Google OAuth credentials
+- GitHub OAuth credentials
 
-### Create the Solution
+### Installation
 
 ```bash
-# Create solution
-dotnet new sln -n IdeaVault
+# Clone the repository
+git clone https://github.com/a7med3yad/BlindIdea.git
+cd BlindIdea
 
-# Create projects
-dotnet new webapi -n IdeaVault.API -o src/IdeaVault.API
-dotnet new classlib -n IdeaVault.Core -o src/IdeaVault.Core
-dotnet new classlib -n IdeaVault.Application -o src/IdeaVault.Application
-dotnet new classlib -n IdeaVault.Infrastructure -o src/IdeaVault.Infrastructure
+# Restore packages
+dotnet restore
 
-# Add to solution
-dotnet sln add src/IdeaVault.API
-dotnet sln add src/IdeaVault.Core
-dotnet sln add src/IdeaVault.Application
-dotnet sln add src/IdeaVault.Infrastructure
+# Apply database migrations
+dotnet ef database update --project BlindIdea.Infrastructure --startup-project BlindIdea.API
 
-# Reference chain: API → Application → Core ← Infrastructure
-dotnet add src/IdeaVault.API reference src/IdeaVault.Application
-dotnet add src/IdeaVault.Application reference src/IdeaVault.Core
-dotnet add src/IdeaVault.Infrastructure reference src/IdeaVault.Core
-dotnet add src/IdeaVault.API reference src/IdeaVault.Infrastructure
+# Run the API
+dotnet run --project BlindIdea.API
 ```
 
-### Install NuGet Packages
+### Access Scalar API Docs
 
-```bash
-# Application Layer
-dotnet add src/IdeaVault.Application package MediatR
-dotnet add src/IdeaVault.Application package FluentValidation.DependencyInjectionExtensions
-dotnet add src/IdeaVault.Application package AutoMapper
-
-# Infrastructure Layer
-dotnet add src/IdeaVault.Infrastructure package Microsoft.EntityFrameworkCore
-dotnet add src/IdeaVault.Infrastructure package Npgsql.EntityFrameworkCore.PostgreSQL
-dotnet add src/IdeaVault.Infrastructure package Microsoft.EntityFrameworkCore.Design
-dotnet add src/IdeaVault.Infrastructure package MailKit
-
-# API Layer
-dotnet add src/IdeaVault.API package Microsoft.AspNetCore.Authentication.JwtBearer
-dotnet add src/IdeaVault.API package Swashbuckle.AspNetCore
-dotnet add src/IdeaVault.API package Serilog.AspNetCore
+```
+https://localhost:7286/scalar
 ```
 
 ---
 
-## Configuration
+## Environment Variables
 
-`appsettings.json`:
+Add these to `appsettings.json` or User Secrets:
+
 ```json
 {
   "ConnectionStrings": {
-    "Default": "Host=localhost;Database=ideavault;Username=postgres;Password=secret"
+    "DefaultConnection": "Server=YOUR_SERVER;Database=BlindIdeaDb;Trusted_Connection=True;TrustServerCertificate=True;"
   },
   "Jwt": {
-    "Secret": "your-super-secret-key-at-least-32-chars",
-    "Issuer": "IdeaVault",
-    "Audience": "IdeaVaultUsers"
+    "Key": "your-super-secret-key-minimum-32-characters!!",
+    "Issuer": "BlindIdea",
+    "Audience": "BlindIdeaUsers"
   },
-  "Email": {
-    "Host": "smtp.sendgrid.net",
-    "Port": 587,
-    "Username": "apikey",
-    "Password": "SG.xxxxx",
-    "FromAddress": "noreply@ideavault.app",
-    "FromName": "IdeaVault"
+  "Encryption": {
+    "Key": "your-32-character-encryption-key!!"
   },
-  "Otp": {
-    "ExpiryMinutes": 10
+  "EmailSettings": {
+    "Email": "theblindidea@gmail.com",
+    "Password": "your-gmail-app-password",
+    "DisplayName": "BlindIdea"
+  },
+  "Authentication": {
+    "Google": {
+      "ClientId": "your-google-client-id",
+      "ClientSecret": "your-google-client-secret"
+    },
+    "GitHub": {
+      "ClientId": "your-github-client-id",
+      "ClientSecret": "your-github-client-secret"
+    }
   }
 }
 ```
 
-Use `dotnet user-secrets` for local development to keep credentials out of source control:
+> **Never commit real credentials to source control.**
+> Use `dotnet user-secrets` for local development.
+
 ```bash
-dotnet user-secrets set "Jwt:Secret" "my-local-dev-secret-32-chars-minimum"
+dotnet user-secrets set "Jwt:Key" "your-secret-key"
+dotnet user-secrets set "EmailSettings:Password" "your-app-password"
 ```
 
 ---
 
-## Database Setup
+## API Endpoints
 
-```bash
-# Add initial migration
-dotnet ef migrations add InitialCreate \
-  --project src/IdeaVault.Infrastructure \
-  --startup-project src/IdeaVault.API
+### Auth
 
-# Apply migration
-dotnet ef database update \
-  --project src/IdeaVault.Infrastructure \
-  --startup-project src/IdeaVault.API
+| Method | Endpoint | Description | Auth |
+|---|---|---|---|
+| POST | `/api/Auth/register` | Register with email + password | Public |
+| POST | `/api/Auth/verify-email` | Submit OTP → get tokens | Public |
+| POST | `/api/Auth/login` | Login → get tokens | Public |
+| POST | `/api/Auth/forgot-password` | Send OTP to email | Public |
+| POST | `/api/Auth/verify-reset` | Verify OTP → get tokens | Public |
+| POST | `/api/Auth/refresh-token` | Refresh access token | Public |
+| POST | `/api/Auth/logout` | Revoke refresh token | Bearer |
+| POST | `/api/Auth/change-password` | Change password | Bearer |
+| POST | `/api/Auth/assign-role` | Assign role to user | Admin |
+| GET | `/api/Auth/profile` | Get current user profile | Bearer |
+| GET | `/api/Auth/login/google` | Google OAuth login | Public |
+| GET | `/api/Auth/login/github` | GitHub OAuth login | Public |
+
+### Team
+
+| Method | Endpoint | Description | Auth |
+|---|---|---|---|
+| POST | `/api/Team/create` | Create team → become Admin | Bearer |
+| POST | `/api/Team/join` | Join team with invite code | Bearer |
+| GET | `/api/Team/my-team` | Get my team info | Bearer |
+| GET | `/api/Team/members` | Get team members | Bearer |
+| POST | `/api/Team/leave` | Leave team | Bearer |
+| DELETE | `/api/Team/delete` | Delete team | Admin |
+| POST | `/api/Team/regenerate-invite` | New invite code | Admin |
+| DELETE | `/api/Team/remove-member/{id}` | Remove a member | Admin |
+
+### Ideas
+
+| Method | Endpoint | Description | Auth |
+|---|---|---|---|
+| POST | `/api/Idea/submit` | Submit anonymous idea | Bearer |
+| GET | `/api/Idea/team-ideas` | Get all team ideas | Bearer |
+| GET | `/api/Idea/{ideaId}` | Get single idea | Bearer |
+| DELETE | `/api/Idea/{ideaId}` | Delete idea (author only) | Bearer |
+| POST | `/api/Idea/{ideaId}/rate` | Rate idea (1-5) | Bearer |
+| DELETE | `/api/Idea/{ideaId}/rate` | Remove rating | Bearer |
+
+### Dashboard
+
+| Method | Endpoint | Description | Auth |
+|---|---|---|---|
+| GET | `/api/Dashboard` | Get team dashboard | Bearer |
+
+---
+
+## Authentication Flow
+
+### Register + Verify
+
+```
+POST /register  { email, password }
+        ↓
+OTP sent to email (valid 5 minutes, max 3 requests per 10 minutes)
+        ↓
+POST /verify-email  { email, otp }
+        ↓
+{ accessToken, refreshToken }
+```
+
+### Login
+
+```
+POST /login  { email, password }
+        ↓
+{ accessToken, refreshToken }
+```
+
+### Refresh Token
+
+```
+POST /refresh-token  { refreshToken }
+        ↓
+{ accessToken, refreshToken }  ← new tokens issued, old token revoked
+```
+
+### Google / GitHub OAuth
+
+```
+GET /login/google
+        ↓
+Google login page
+        ↓
+/signin-google  (middleware handles automatically)
+        ↓
+/external-callback
+        ↓
+{ accessToken, refreshToken }
+```
+
+### Using Bearer Token in Requests
+
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 ---
 
-## Running the Project
+## Security
 
-```bash
-cd src/IdeaVault.API
-dotnet run
+### JWT Tokens
+
+| Token | Lifetime | Purpose |
+|---|---|---|
+| Access Token | 15 minutes | Authenticate API requests |
+| Refresh Token | 7 days | Get new access token |
+
+### OTP Protection
+
+| Rule | Value |
+|---|---|
+| OTP expiration | 5 minutes |
+| Max requests | 3 per 10 minutes |
+| Storage | ASP.NET Identity tokens (hashed) |
+
+### Idea Encryption
+
+```
+Submit idea:
+"My amazing idea"
+        ↓  AES-256 Encrypt (random IV per encryption)
+"aGVsbG8gd29ybGQ..."  ← stored in DB
+
+View idea:
+"aGVsbG8gd29ybGQ..."
+        ↓  AES-256 Decrypt
+"My amazing idea"  ← shown to team members only
 ```
 
-Swagger UI available at: `https://localhost:5001/swagger`
+### Anonymity
+
+- `UserId` is stored in the database but **never returned** in API responses
+- `IdeaResponseDto` contains no author field
+- Ratings are shown as averages only — never linked to a specific user
 
 ---
 
-## Testing
+## Database Schema
 
-```bash
-# Run all tests
-dotnet test
-
-# Run with coverage
-dotnet test --collect:"XPlat Code Coverage"
 ```
+AspNetUsers
+├── Id
+├── Email
+├── TeamId (FK → Teams, nullable)
+├── IsVerified
+├── OtpExpiration
+├── OtpRequestCount
+└── OtpRequestWindowStart
 
-Unit tests mock all interfaces from `IdeaVault.Core`. Integration tests use `WebApplicationFactory` with an in-memory or test PostgreSQL database.
+Teams
+├── Id
+├── Name
+├── InviteCode (unique index)
+├── AdminId (FK → AspNetUsers)
+└── CreatedAt
+
+Ideas
+├── Id
+├── EncryptedTitle
+├── EncryptedContent
+├── TeamId (FK → Teams)
+├── UserId (FK → AspNetUsers)
+└── CreatedAt
+
+Ratings
+├── Id
+├── Score (1 to 5)
+├── IdeaId (FK → Ideas)
+├── UserId (FK → AspNetUsers)
+└── Unique constraint on (UserId + IdeaId)
+
+RefreshTokens
+├── Id
+├── Token
+├── ExpiresAt
+├── CreatedAt
+├── IsRevoked
+└── UserId (FK → AspNetUsers)
+```
 
 ---
 
-> Built with ❤️ on .NET 10 — Clean Architecture, no shortcuts.
+## Design Patterns Used
+
+| Pattern | Where |
+|---|---|
+| Repository Pattern | `IGenericRepository`, `TeamRepository`, `IdeaRepository`, `RatingRepository` |
+| Unit of Work | `IUnitOfWork`, `UnitOfWork` |
+| Dependency Injection | All services registered via interfaces in `Program.cs` |
+| Interface Segregation | `IAuthService`, `ITeamService`, `IIdeaService`, `IDashboardService` |
+| Clean Architecture | 4 separate projects with strict dependency rules |
+| Options Pattern | `EmailSettings`, `JwtSettings` from `appsettings.json` |
+
+---
+
+## Branding
+
+**BlindIdea** — *Innovation without ego.*
+
+| Color | Hex | Usage |
+|---|---|---|
+| Primary Red | `#E8003D` | Brand color, buttons, accents |
+| Background | `#000000` | App background |
+| White | `#FFFFFF` | Primary text |
+| Dark Card | `#1A1A1A` | Cards, surfaces |
+| Border | `#2A2A2A` | Subtle borders |
+| Muted | `#AAAAAA` | Secondary text |
+
+---
+
+*Built with ❤️ — Ahmed Ayad*
