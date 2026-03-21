@@ -1,21 +1,23 @@
 ﻿using BlindIdea.Application.Dtos;
-using BlindIdea.Domain.Abstraction;
+using BlindIdea.Application.Services.Abstraction.Dashboards;
+using BlindIdea.Domain.Abstraction.Services;
+using BlindIdea.Domain.Abstraction.UnitOfWorks;
 using BlindIdea.Domain.Entities;
 using BlindIdea.Infrastructure.Implementation.Encryption;
 using Microsoft.AspNetCore.Identity;
 
 namespace BlindIdea.Application.Services.Implementation.Dashboards
 {
-    public class DashboardService
+    public class DashboardService:IDashboardService
     {
         private readonly IUnitOfWork _uow;
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly EncryptionService _encryption;
+        private readonly IEncryptionService _encryption;
 
         public DashboardService(
             IUnitOfWork uow,
             UserManager<ApplicationUser> userManager,
-            EncryptionService encryption)
+            IEncryptionService encryption)
         {
             _uow = uow;
             _userManager = userManager;

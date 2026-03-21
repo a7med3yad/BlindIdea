@@ -1,15 +1,13 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using AspNet.Security.OAuth.GitHub;
+using BlindIdea.Application.Dtos.Auth;
+using BlindIdea.Application.Services.Abstraction;
+using BlindIdea.Application.Services.Abstraction.Auth;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication.Google;
-using AspNet.Security.OAuth.GitHub;
-using Microsoft.AspNetCore.Authentication;
-using BlindIdea.Domain.Entities;
-using BlindIdea.Infrastructure.Implementation.Auth;
-using BlindIdea.Infrastructure.Persistence;
-using BlindIdea.Application.Dtos.Auth;
 
 namespace Authentication.Controllers
 {
@@ -17,49 +15,129 @@ namespace Authentication.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly OtpService _otpService;
-        private readonly TokenService _tokenService;
-        private readonly EmailService _emailService;
-        private readonly AppDbContext _context;
-        private readonly OAuthService _oAuthService;
-        private readonly RoleManager<IdentityRole> _roleManager;
-        public AuthController(
-            UserManager<ApplicationUser> userManager,
-            OtpService otpService,
-            TokenService tokenService,
-            EmailService emailService,
-            AppDbContext context,
-            RoleManager<IdentityRole> roleManager,
-            OAuthService oAuthService
-            )
+        private readonly IAuthService _authService;
+
+        public AuthController(IAuthService authService)
         {
-            _userManager = userManager;
-            _otpService = otpService;
-            _tokenService = tokenService;
-            _emailService = emailService;
-            _context = context;
-            _roleManager = roleManager;
-            _oAuthService = oAuthService;
+            _authService = authService;
         }
-        // ✅ Only Admin
+
+        private string GetUserId() =>
+            User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+
+        // ✅ Register
+        [HttpPost("register")]
+        public async Task<IActionResult> Register(RegisterDto dto)
+        {
+            try
+            {
+                var message = await _authService.RegisterAsync(dto);
+                return Ok(message);
+            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
+
+        // ✅ Verify Email
+        [HttpPost("verify-email")]
+        public async Task<IActionResult> VerifyEmail(VerifyOtpDto dto)
+        {
+            try
+            {
+                var response = await _authService.VerifyEmailAsync(dto);
+                return Ok(response);
+            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
+
+        // ✅ Login
+        [HttpPost("login")]
+        public async Task<IActionResult> Login(RegisterDto dto)
+        {
+            try
+            {
+                var response = await _authService.LoginAsync(dto);
+                return Ok(response);
+            }
+            catch (Exception ex) { return Unauthorized(ex.Message); }
+        }
+
+        // ✅ Forgot Password
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword(string email)
+        {
+            try
+            {
+                var message = await _authService.ForgotPasswordAsync(email);
+                return Ok(message);
+            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
+
+        // ✅ Verify Reset
+        [HttpPost("verify-reset")]
+        public async Task<IActionResult> VerifyReset(VerifyOtpDto dto)
+        {
+            try
+            {
+                var response = await _authService.VerifyResetAsync(dto);
+                return Ok(response);
+            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
+
+        // ✅ Refresh Token
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken(RefreshTokenDto dto)
+        {
+            try
+            {
+                var response = await _authService.RefreshTokenAsync(dto);
+                return Ok(response);
+            }
+            catch (Exception ex) { return Unauthorized(ex.Message); }
+        }
+
+        // ✅ Logout
+        [Authorize]
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout(RefreshTokenDto dto)
+        {
+            try
+            {
+                await _authService.LogoutAsync(dto);
+                return Ok("Logged out successfully");
+            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
+
+        // ✅ Change Password
+        [Authorize]
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword(ChangePasswordDto dto)
+        {
+            try
+            {
+                await _authService.ChangePasswordAsync(GetUserId(), dto);
+                return Ok("Password changed successfully");
+            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
+
+        // ✅ Assign Role
         [Authorize(Roles = "Admin")]
-        [HttpGet("admin-panel")]
-        public IActionResult AdminPanel()
+        [HttpPost("assign-role")]
+        public async Task<IActionResult> AssignRole(string email, string role)
         {
-            return Ok("Welcome Admin");
+            try
+            {
+                await _authService.AssignRoleAsync(email, role);
+                return Ok($"Role {role} assigned to {email}");
+            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
         }
 
-        // ✅ Only User
-        [Authorize(Roles = "User")]
-        [HttpGet("user-dashboard")]
-        public IActionResult UserDashboard()
-        {
-            return Ok("Welcome User");
-        }
-
-        // ✅ Both Admin and User
-        [Authorize(Roles = "Admin,User")]
+        // ✅ Profile
+        [Authorize]
         [HttpGet("profile")]
         public IActionResult Profile()
         {
@@ -68,186 +146,13 @@ namespace Authentication.Controllers
             return Ok(new { email, role });
         }
 
-        [Authorize(Roles = "Admin")]
-        [HttpPost("assign-role")]
-        public async Task<IActionResult> AssignRole(string email, string role)
-        {
-            var user = await _userManager.FindByEmailAsync(email);
-
-            if (user == null)
-                return BadRequest("User not found");
-
-            if (!await _roleManager.RoleExistsAsync(role))
-                return BadRequest("Role does not exist");
-
-            await _userManager.AddToRoleAsync(user, role);
-
-            return Ok($"Role {role} assigned to {email}");
-        }
-
-        [HttpPost("register")]
-        public async Task<IActionResult> register(RegisterDto dto)
-        {
-            var user = new ApplicationUser
-            {
-                Email = dto.Email,
-                UserName = dto.Email,
-            };
-            var result = await _userManager.CreateAsync(user, dto.Password);
-            if (!result.Succeeded)
-            {
-                return BadRequest(result.Errors);
-            }
-            await _userManager.AddToRoleAsync(user, "User");
-
-            if (!_otpService.CanRequestOtp(user))
-            {
-                return BadRequest("Too many OTP requests. Please wait 10 minutes.");
-            }
-
-            var otp = _otpService.GenerateOtp();
-
-            user.OtpExpiration = _otpService.GetExpiration();
-
-            await _emailService.SendOtp(user.Email, otp);
-
-            await _userManager.SetAuthenticationTokenAsync(
-                user, "AuthApi", "OTP", otp
-            );
-            return Ok("OTP sent to email. Valid for 5 minuts.");
-
-        }
-        [HttpPost("Verify-email")]
-        public async Task<IActionResult> VerifyOtp(VerifyOtpDto dto)
-        {
-            var user = await _userManager.FindByEmailAsync(dto.Email);
-            if (user == null) return BadRequest("User not found");
-
-            if (_otpService.IsExpired(user.OtpExpiration))
-                return BadRequest("OTP has expired. Please request a new one.");
-            var storedOtp = await _userManager.GetAuthenticationTokenAsync(
-                user, "AuthApi", "OTP"
-            );
-
-            if (storedOtp != dto.Otp)
-            {
-                return BadRequest("Invalid OTP");
-            }
-
-            user.IsVerified = true;
-
-            user.OtpExpiration = null;
-
-            await _userManager.UpdateAsync(user);
-
-            await _userManager.RemoveAuthenticationTokenAsync(user, "AuthApi", "OTP");
-
-            return Ok(new AuthResponseDto
-            {
-                AccessToken = await _tokenService.CreateAccessToken(user),
-                RefreshToken = (await _tokenService.CreateRefreshToken(user)).Token
-            });
-        }
-
-        [HttpPost("login")]
-        public async Task<IActionResult> login(RegisterDto dto)
-        {
-            var user = await _userManager.FindByEmailAsync(dto.Email);
-            if (user == null) return Unauthorized("User not register");
-            var valid = await _userManager.CheckPasswordAsync(user, dto.Password);
-            if (!valid) return Unauthorized("Invalid password");
-
-            return Ok(new AuthResponseDto
-            {
-                AccessToken = await _tokenService.CreateAccessToken(user),
-                RefreshToken = (await _tokenService.CreateRefreshToken(user)).Token
-            });
-        }
-
-
-        [HttpPost("forgot-password")]
-        public async Task<IActionResult> forgetpassword(string email)
-        {
-            var user = await _userManager.FindByEmailAsync(email);
-            if (user == null)
-                return BadRequest("User not found");
-
-
-            if (!_otpService.CanRequestOtp(user))
-                return BadRequest("Too many OTP requests. Please wait 10 minutes.");
-
-            var otp = _otpService.GenerateOtp();
-            user.OtpExpiration = _otpService.GetExpiration();
-            await _userManager.UpdateAsync(user);
-            await _userManager.SetAuthenticationTokenAsync(
-                user, "AuthApi", "ResetOTP", otp
-            );
-            await _emailService.SendOtp(email, otp);
-            return Ok("OTP Sent");
-        }
-
-
-        [HttpPost("refresh-token")]
-        public async Task<IActionResult> RefreshToken(RefreshTokenDto dto)
-        {
-            var storedToken = await _context.RefreshTokens
-                .Include(t => t.User)
-                .FirstOrDefaultAsync(t => t.Token == dto.RefreshToken);
-
-            if (storedToken == null) return Unauthorized("Invalid refresh token");
-            if (!storedToken.IsActive)
-                return Unauthorized("Refresh token expired or revoked. Please login again.");
-            storedToken.IsRevoked = true;
-            await _context.SaveChangesAsync();
-            return Ok(new AuthResponseDto
-            {
-                AccessToken = await _tokenService.CreateAccessToken(storedToken.User),
-                RefreshToken = (await _tokenService.CreateRefreshToken(storedToken.User)).Token
-            });
-        }
-        [HttpPost("verify-reset")]
-        public async Task<IActionResult> VerifyReset(VerifyOtpDto dto)
-        {
-            var user = await _userManager.FindByEmailAsync(dto.Email);
-
-            var otp = await _userManager.GetAuthenticationTokenAsync(
-                user, "AuthApi", "ResetOTP"
-            );
-
-            if (otp != dto.Otp)
-                return BadRequest("Invalid OTP");
-
-            return Ok(new AuthResponseDto
-            {
-                AccessToken = await _tokenService.CreateAccessToken(user),
-                RefreshToken = (await _tokenService.CreateRefreshToken(user)).Token
-            });
-        }
-
-        [Authorize]
-        [HttpPost("change-password")]
-        public async Task<IActionResult> ChangePassword(ChangePasswordDto dto)
-        {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var user = await _userManager.FindByIdAsync(userId);
-
-            if (user == null) return Unauthorized();
-            var result = await _userManager.ChangePasswordAsync(
-                user,
-                dto.CurrentPassword,
-                dto.NewPassword
-            );
-            if (!result.Succeeded) return BadRequest(result.Errors);
-            return Ok("Password changed successfully");
-        }
         // ✅ Google Login
         [HttpGet("login/google")]
         public IActionResult GoogleLogin()
         {
-            var redirectUrl = Url.Action("ExternalCallback", "Auth");
             var props = new AuthenticationProperties
             {
-                RedirectUri = redirectUrl  // ✅ points to ExternalCallback
+                RedirectUri = Url.Action("ExternalCallback", "Auth")
             };
             return Challenge(props, GoogleDefaults.AuthenticationScheme);
         }
@@ -256,17 +161,14 @@ namespace Authentication.Controllers
         [HttpGet("login/github")]
         public IActionResult GitHubLogin()
         {
-            var redirectUrl = Url.Action("ExternalCallback", "Auth");
             var props = new AuthenticationProperties
             {
-                RedirectUri = redirectUrl  // ✅ same ExternalCallback for both
+                RedirectUri = Url.Action("ExternalCallback", "Auth")
             };
             return Challenge(props, GitHubAuthenticationDefaults.AuthenticationScheme);
         }
 
-        // ✅ One unified callback for both Google and GitHub
-        // Middleware handles /signin-google and /signin-github automatically
-        // then redirects here
+        // ✅ OAuth Callback
         [HttpGet("external-callback")]
         public async Task<IActionResult> ExternalCallback()
         {
@@ -275,17 +177,19 @@ namespace Authentication.Controllers
             if (!result.Succeeded)
                 return Unauthorized($"External login failed: {result.Failure?.Message}");
 
+            var email = result.Principal?.FindFirst(ClaimTypes.Email)?.Value
+                ?? result.Principal?.FindFirst("email")?.Value;
+
+            if (string.IsNullOrEmpty(email))
+                return BadRequest("Email not provided by OAuth provider");
+
             try
             {
-                var response = await _oAuthService.HandleOAuthLogin(result);
+                // ✅ Just pass email to service — no AuthenticateResult dependency
+                var response = await _authService.HandleOAuthLoginAsync(email);
                 return Ok(response);
             }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
         }
-
-
     }
 }

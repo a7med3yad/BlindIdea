@@ -8,10 +8,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using BlindIdea.Infrastructure.Persistence;
 using BlindIdea.Domain.Entities;
+using BlindIdea.Domain.Abstraction.Services;
 
 namespace BlindIdea.Infrastructure.Implementation.Auth
 {
-    public class TokenService
+    public class TokenService:ITokenService
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _configuration;

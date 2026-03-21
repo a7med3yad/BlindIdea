@@ -1,4 +1,4 @@
-﻿namespace BlindIdea.Domain.Abstraction
+﻿namespace BlindIdea.Domain.Abstraction.Repositories
 {
     public interface IGenericRepository<T> where T : class
     {

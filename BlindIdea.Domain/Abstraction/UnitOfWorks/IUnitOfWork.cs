@@ -1,4 +1,6 @@
-﻿namespace BlindIdea.Domain.Abstraction
+﻿using BlindIdea.Domain.Abstraction.Repositories;
+
+namespace BlindIdea.Domain.Abstraction.UnitOfWorks
 {
     public interface IUnitOfWork : IDisposable
     {

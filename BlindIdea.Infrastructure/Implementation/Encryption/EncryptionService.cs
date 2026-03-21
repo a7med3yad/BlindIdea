@@ -1,10 +1,11 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using BlindIdea.Domain.Abstraction.Services;
+using Microsoft.Extensions.Configuration;
 using System.Security.Cryptography;
 using System.Text;
 
 namespace BlindIdea.Infrastructure.Implementation.Encryption
 {
-    public class EncryptionService
+    public class EncryptionService:IEncryptionService
     {
         private readonly byte[] _key;
 

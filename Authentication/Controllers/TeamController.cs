@@ -1,4 +1,5 @@
 ﻿using BlindIdea.Application.Dtos.Teams;
+using BlindIdea.Application.Services.Abstraction.Teams;
 using BlindIdea.Application.Services.Implementation.Teams;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -10,8 +11,8 @@ namespace BlindIdea.API.Controllers
     [ApiController]
     public class TeamController : ControllerBase
     {
-        private readonly TeamService _teamService;
-        public TeamController(TeamService teamService)
+        private readonly ITeamService _teamService;
+        public TeamController(ITeamService teamService)
         {
             _teamService= teamService;
         }

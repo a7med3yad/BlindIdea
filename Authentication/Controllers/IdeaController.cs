@@ -1,4 +1,5 @@
 ﻿using BlindIdea.Application.Dtos.Ideas;
+using BlindIdea.Application.Services.Abstraction.Ideas;
 using BlindIdea.Application.Services.Implementation.Ideas;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,9 +12,9 @@ namespace BlindIdea.API.Controllers
     [Route("api/[controller]")]
     public class IdeaController : ControllerBase
     {
-        private readonly IdeaService _ideaService;
+        private readonly IIdeaService _ideaService;
 
-        public IdeaController(IdeaService ideaService)
+        public IdeaController(IIdeaService ideaService)
         {
             _ideaService = ideaService;
         }

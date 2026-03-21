@@ -1,9 +1,10 @@
 ﻿using MimeKit;
 using MailKit.Net.Smtp;
 using MailKit.Security;
+using BlindIdea.Domain.Abstraction.Services;
 namespace BlindIdea.Infrastructure.Implementation.Auth
 {
-    public class EmailService
+    public class EmailService:IEmailService
     {
         public async Task SendOtp(string email, string otp)
         {

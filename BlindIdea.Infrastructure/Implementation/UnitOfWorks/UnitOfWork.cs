@@ -1,5 +1,5 @@
-﻿
-using BlindIdea.Domain.Abstraction;
+﻿using BlindIdea.Domain.Abstraction.Repositories;
+using BlindIdea.Domain.Abstraction.UnitOfWorks;
 using BlindIdea.Infrastructure.Implementation.Repositories;
 using BlindIdea.Infrastructure.Persistence;
 

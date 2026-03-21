@@ -1,4 +1,5 @@
-﻿using BlindIdea.Infrastructure.Implementation.Encryption;
+﻿using BlindIdea.Domain.Abstraction.Services;
+using BlindIdea.Infrastructure.Implementation.Encryption;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BlindIdea.API.Controllers
@@ -8,7 +9,7 @@ namespace BlindIdea.API.Controllers
     public class EncryptionController : ControllerBase
     {
         [HttpGet("test-encryption")]
-        public IActionResult TestEncryption([FromServices] EncryptionService enc)
+        public IActionResult TestEncryption([FromServices] IEncryptionService enc)
         {
             var original = "Hello BlindIdea!";
             var encrypted = enc.Encrypt(original);

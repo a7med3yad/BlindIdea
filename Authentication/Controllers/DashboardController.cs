@@ -1,4 +1,5 @@
-﻿using BlindIdea.Application.Services.Implementation.Dashboards;
+﻿using BlindIdea.Application.Services.Abstraction.Dashboards;
+using BlindIdea.Application.Services.Implementation.Dashboards;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -11,9 +12,9 @@ namespace BlindIdea.API.Controllers
     [Route("api/[controller]")]
     public class DashboardController : ControllerBase
     {
-        private readonly DashboardService _dashboardService;
+        private readonly IDashboardService _dashboardService;
 
-        public DashboardController(DashboardService dashboardService)
+        public DashboardController(IDashboardService dashboardService)
         {
             _dashboardService = dashboardService;
         }
