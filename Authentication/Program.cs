@@ -1,7 +1,13 @@
-﻿using BlindIdea.Application.Services.Implementation.Dashboards;
+﻿using BlindIdea.Application.Implementation.Auth;
+using BlindIdea.Application.Services.Abstraction.Auth;
+using BlindIdea.Application.Services.Abstraction.Dashboards;
+using BlindIdea.Application.Services.Abstraction.Ideas;
+using BlindIdea.Application.Services.Abstraction.Teams;
+using BlindIdea.Application.Services.Implementation.Dashboards;
 using BlindIdea.Application.Services.Implementation.Ideas;
 using BlindIdea.Application.Services.Implementation.Teams;
-using BlindIdea.Domain.Abstraction;
+using BlindIdea.Domain.Abstraction.Services;
+using BlindIdea.Domain.Abstraction.UnitOfWorks;
 using BlindIdea.Domain.Entities;
 using BlindIdea.Infrastructure.Implementation.Auth;
 using BlindIdea.Infrastructure.Implementation.Encryption;
@@ -82,18 +88,20 @@ namespace BlindIdea.API
             builder.Services.AddAuthorization(); 
 
             // Dependency injection
-            builder.Services.AddScoped<TokenService>();
-            builder.Services.AddScoped<EmailService>();
-            builder.Services.AddScoped<OtpService>();
-            builder.Services.AddScoped<OAuthService>();
+            builder.Services.AddScoped<ITokenService, TokenService>();
+            builder.Services.AddScoped<IEmailService, EmailService>();
+            builder.Services.AddScoped<IOtpService, OtpService>();
+            builder.Services.AddScoped<IOAuthService, OAuthService>();
+            builder.Services.AddScoped<IEncryptionService, EncryptionService>();
 
-            builder.Services.AddEndpointsApiExplorer();
 
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-            builder.Services.AddScoped<TeamService>();
-            builder.Services.AddScoped<EncryptionService>();
-            builder.Services.AddScoped<IdeaService>();
-            builder.Services.AddScoped<DashboardService>();
+            builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<ITeamService, TeamService>();
+            builder.Services.AddScoped<IIdeaService, IdeaService>();
+            builder.Services.AddScoped<IDashboardService, DashboardService>();
+
+            builder.Services.AddEndpointsApiExplorer();
 
 
             var app = builder.Build();

@@ -1,6 +1,6 @@
 ﻿using BlindIdea.Domain.Entities;
 
-namespace BlindIdea.Domain.Abstraction
+namespace BlindIdea.Domain.Abstraction.Repositories
 {
     public interface ITeamRepository:IGenericRepository<Team>
     {

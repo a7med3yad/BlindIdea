@@ -1,4 +1,5 @@
-﻿using BlindIdea.Domain.Dtos.Auth;
+﻿using BlindIdea.Domain.Abstraction.Services;
+using BlindIdea.Domain.Dtos.Auth;
 using BlindIdea.Domain.Entities;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
@@ -6,7 +7,7 @@ using System.Security.Claims;
 
 namespace BlindIdea.Infrastructure.Implementation.Auth
 {
-    public class OAuthService
+    public class OAuthService:IOAuthService
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly TokenService _tokenService;

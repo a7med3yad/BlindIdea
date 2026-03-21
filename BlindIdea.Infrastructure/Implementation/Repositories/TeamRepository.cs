@@ -1,4 +1,4 @@
-﻿using BlindIdea.Domain.Abstraction;
+﻿using BlindIdea.Domain.Abstraction.Repositories;
 using BlindIdea.Domain.Entities;
 using BlindIdea.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;

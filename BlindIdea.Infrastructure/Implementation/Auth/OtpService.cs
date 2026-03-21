@@ -1,9 +1,9 @@
-﻿
+﻿using BlindIdea.Domain.Abstraction.Services;
 using BlindIdea.Domain.Entities;
 
 namespace BlindIdea.Infrastructure.Implementation.Auth
 {
-    public class OtpService
+    public class OtpService:IOtpService
     {
         private const int MaxOtpRequests = 3;       
         private const int WindowMinutes = 10;

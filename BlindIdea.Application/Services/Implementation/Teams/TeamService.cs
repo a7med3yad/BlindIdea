@@ -1,10 +1,11 @@
 ﻿using BlindIdea.Application.Dtos.Teams;
-using BlindIdea.Domain.Abstraction;
+using BlindIdea.Application.Services.Abstraction.Teams;
+using BlindIdea.Domain.Abstraction.UnitOfWorks;
 using BlindIdea.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 namespace BlindIdea.Application.Services.Implementation.Teams
 {
-    public class TeamService
+    public class TeamService:ITeamService
     {
         private readonly IUnitOfWork _uow;
         private readonly UserManager<ApplicationUser> _userManager;
@@ -110,7 +111,7 @@ namespace BlindIdea.Application.Services.Implementation.Teams
         public async Task DeleteTeamAsync(string userId)
         {
             var user = await _userManager.FindByIdAsync(userId)
-                ?? throw new Exception("User now found");
+                ?? throw new Exception("User not found");
 
             if (user.TeamId == null)
                 throw new Exception("You are not in a team");
@@ -121,17 +122,20 @@ namespace BlindIdea.Application.Services.Implementation.Teams
             if (team.AdminId != userId)
                 throw new Exception("Only admin can delete the team");
 
+            // ✅ Remove all members from team
             foreach (var member in team.Members)
             {
                 member.TeamId = null;
                 await _userManager.UpdateAsync(member);
-
-                if (await _userManager.IsInRoleAsync(user, "Admin"))
-                    await _userManager.RemoveFromRoleAsync(user, "Admin");
-
-                _uow.Teams.Delete(team);
-                await _uow.SaveChangesAsync();
             }
+
+            // ✅ Remove Admin role from creator
+            if (await _userManager.IsInRoleAsync(user, "Admin"))
+                await _userManager.RemoveFromRoleAsync(user, "Admin");
+
+            // ✅ Delete outside loop
+            _uow.Teams.Delete(team);
+            await _uow.SaveChangesAsync();
         }
         public async Task<string> RegenerateInviteCodeAsync(string userId)
         {
