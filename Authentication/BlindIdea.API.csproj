@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BlindIdea.Application\BlindIdea.Application.csproj" />
+    <ProjectReference Include="..\BlindIdea.Infrastructure\BlindIdea.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

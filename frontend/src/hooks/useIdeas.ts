@@ -1,15 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { ideaApi } from '../api/idea.api';
+import { useAuthStore } from '../store/auth.store';
 import type { SubmitIdeaRequest, RateIdeaRequest } from '../types/idea.types';
 
 export const useTeamIdeas = () => {
+  const hasTeam = useAuthStore((s) => s.hasTeam);
+
   return useQuery({
     queryKey: ['team-ideas'],
     queryFn: async () => {
       const response = await ideaApi.getTeamIdeas();
       return response.data;
     },
+    enabled: hasTeam, // ✅ Only fetch if user has a team
   });
 };
 

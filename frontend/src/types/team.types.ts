@@ -3,6 +3,8 @@ export interface Team {
   name: string;
   inviteCode: string;
   createdAt: string;
+  memberCount?: number;
+  adminId?: string;
 }
 
 export interface TeamMember {

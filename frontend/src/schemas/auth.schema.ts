@@ -3,13 +3,14 @@ import { z } from 'zod';
 export const registerSchema = z.object({
   email: z.string()
     .min(1, 'Email is required')
-    .email('Invalid email format'),
+    .email('Please enter a valid email address'),
   password: z.string()
     .min(8, 'Password must be at least 8 characters')
     .regex(/[A-Z]/, 'Must contain at least 1 uppercase letter')
     .regex(/[0-9]/, 'Must contain at least 1 number')
     .regex(/[^a-zA-Z0-9]/, 'Must contain at least 1 special character'),
-  confirmPassword: z.string(),
+  confirmPassword: z.string()
+    .min(1, 'Please confirm your password'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Passwords do not match',
   path: ['confirmPassword'],
@@ -18,7 +19,7 @@ export const registerSchema = z.object({
 export const loginSchema = z.object({
   email: z.string()
     .min(1, 'Email is required')
-    .email('Invalid email format'),
+    .email('Please enter a valid email address'),
   password: z.string()
     .min(1, 'Password is required')
     .min(8, 'Password must be at least 8 characters'),

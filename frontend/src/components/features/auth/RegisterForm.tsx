@@ -30,7 +30,7 @@ export default function RegisterForm() {
 
     if (score <= 1) return { level: 1, label: 'Weak', color: '#EF4444' };
     if (score === 2) return { level: 2, label: 'Fair', color: '#F59E0B' };
-    if (score === 3) return { level: 3, label: 'Good', color: '#F59E0B' };
+    if (score === 3) return { level: 3, label: 'Good', color: '#FACC15' };
     return { level: 4, label: 'Strong', color: '#22C55E' };
   };
 
