@@ -5,11 +5,11 @@ using BlindIdea.Application.Services.Abstraction.Ideas;
 using BlindIdea.Application.Services.Abstraction.Teams;
 using BlindIdea.Application.Services.Implementation.Dashboards;
 using BlindIdea.Application.Services.Implementation.Ideas;
-using BlindIdea.Application.Services.Implementation.Teams;
 using BlindIdea.Domain.Abstraction.Services;
 using BlindIdea.Domain.Abstraction.UnitOfWorks;
 using BlindIdea.Domain.Entities;
 using BlindIdea.Infrastructure.Implementation.Auth;
+using BlindIdea.Infrastructure.Implementation.Cache;
 using BlindIdea.Infrastructure.Implementation.Encryption;
 using BlindIdea.Infrastructure.Implementation.UnitOfWorks;
 using BlindIdea.Infrastructure.Persistence;
@@ -31,30 +31,22 @@ namespace BlindIdea.API
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
             builder.Services.AddControllers();
 
             builder.Services.AddOpenApi();
-            builder.Services.AddDbContext<AppDbContext>(options =>
+            builder.Services.AddDbContextPool<AppDbContext>(options =>
             {
                 options.UseSqlServer(
                     builder.Configuration.GetConnectionString("DefaultConnection"),
                     sqlOptions =>
                     {
-                        // ✅ Auto retry on transient failures
-                        sqlOptions.EnableRetryOnFailure(
-                            maxRetryCount: 3,
-                            maxRetryDelay: TimeSpan.FromSeconds(5),
-                            errorNumbersToAdd: null
-                        );
-
-                        // ✅ Longer timeout
+                        sqlOptions.EnableRetryOnFailure(3,
+                            TimeSpan.FromSeconds(5), null);
                         sqlOptions.CommandTimeout(60);
                     }
                 );
-            });
+            }, poolSize: 128);
 
-            // ✅ AddIdentity FIRST
             builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
@@ -114,6 +106,8 @@ namespace BlindIdea.API
             builder.Services.AddScoped<ITeamService, TeamService>();
             builder.Services.AddScoped<IIdeaService, IdeaService>();
             builder.Services.AddScoped<IDashboardService, DashboardService>();
+            builder.Services.AddMemoryCache();
+            builder.Services.AddScoped<ICacheService,CacheService>();
 
             builder.Services.AddEndpointsApiExplorer();
 
@@ -123,9 +117,9 @@ namespace BlindIdea.API
                 {
                     policy
                         .WithOrigins(
-                            "http://localhost:3000",    // React dev server
-                            "http://localhost:5173",    // Vite dev server
-                            "https://yourdomain.com"    // production domain later
+                            "http://localhost:3000",    
+                            "http://localhost:5173",    
+                            "https://yourdomain.com"    
                         )
                         .AllowAnyHeader()
                         .AllowAnyMethod()
@@ -135,7 +129,6 @@ namespace BlindIdea.API
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
                 app.MapOpenApi();

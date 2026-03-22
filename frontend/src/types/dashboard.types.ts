@@ -1,11 +1,18 @@
-export interface DashboardStats {
-  totalIdeas: number;
-  totalRatings: number;
-  averageRating: number;
-  myIdeas: number;
+export interface DashboardResponse {
+  team: {
+    teamName: string;
+    memberCount: number;
+    createdAt: string;
+  };
+  ideas: {
+    totalIdeas: number;
+    totalRatings: number;
+    overallAverageRating: number;
+    ideasSubmittedByMe: number;
+    ideasRatedByMe: number;
+  };
   topIdeas: DashboardIdea[];
   recentIdeas: DashboardIdea[];
-  team: DashboardTeam | null;
 }
 
 export interface DashboardIdea {
@@ -16,9 +23,5 @@ export interface DashboardIdea {
   createdAt: string;
 }
 
-export interface DashboardTeam {
-  id: string;
-  name: string;
-  inviteCode: string;
-  memberCount: number;
-}
+// Keep old name as alias for backward compat
+export type DashboardStats = DashboardResponse;

@@ -1,27 +1,31 @@
-﻿using BlindIdea.Application.Dtos;
+﻿using BlindIdea.Application.Common;
+using BlindIdea.Application.Dtos;
 using BlindIdea.Application.Services.Abstraction.Dashboards;
-using BlindIdea.Domain.Abstraction.Services;
 using BlindIdea.Domain.Abstraction.UnitOfWorks;
 using BlindIdea.Domain.Entities;
+using BlindIdea.Infrastructure.Implementation.Cache;
 using BlindIdea.Infrastructure.Implementation.Encryption;
 using Microsoft.AspNetCore.Identity;
 
 namespace BlindIdea.Application.Services.Implementation.Dashboards
 {
-    public class DashboardService:IDashboardService
+    public class DashboardService : IDashboardService
     {
         private readonly IUnitOfWork _uow;
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly IEncryptionService _encryption;
+        private readonly EncryptionService _encryption;
+        private readonly CacheService _cache; 
 
         public DashboardService(
             IUnitOfWork uow,
             UserManager<ApplicationUser> userManager,
-            IEncryptionService encryption)
+            EncryptionService encryption,
+            CacheService cache) 
         {
             _uow = uow;
             _userManager = userManager;
             _encryption = encryption;
+            _cache = cache;
         }
 
         public async Task<DashboardResponseDto> GetDashboardAsync(string userId)
@@ -32,11 +36,20 @@ namespace BlindIdea.Application.Services.Implementation.Dashboards
             if (user.TeamId == null)
                 throw new Exception("You must be in a team to view dashboard");
 
-            var team = await _uow.Teams.GetTeamWithMembersAsync(user.TeamId)
+            return await _cache.GetOrSetAsync(
+                CacheKeys.Dashboard(user.TeamId),
+                () => BuildDashboardAsync(user.TeamId, userId),
+                CacheDurations.Dashboard
+            );
+        }
+
+        private async Task<DashboardResponseDto> BuildDashboardAsync(
+            string teamId, string userId)
+        {
+            var team = await _uow.Teams.GetTeamWithMembersAsync(teamId)
                 ?? throw new Exception("Team not found");
 
-            var ideas = (await _uow.Ideas.GetTeamIdeaAsync(user.TeamId)).ToList();
-
+            var ideas = (await _uow.Ideas.GetTeamIdeaAsync(teamId)).ToList();
             var allRatings = ideas.SelectMany(i => i.Ratings).ToList();
 
             return new DashboardResponseDto
@@ -65,9 +78,7 @@ namespace BlindIdea.Application.Services.Implementation.Dashboards
                 OverallAverageRating = allRatings.Any()
                 ? Math.Round(allRatings.Average(r => r.Score), 1)
                 : 0,
-
                 IdeasSubmittedByMe = ideas.Count(i => i.UserId == userId),
-
                 IdeasRatedByMe = allRatings.Count(r => r.UserId == userId)
             };
 
@@ -79,8 +90,9 @@ namespace BlindIdea.Application.Services.Implementation.Dashboards
                 .Select(i => new TopIdeaDto
                 {
                     Id = i.Id,
-                    Title = _encryption.Decrypt(i.EncryptedTitle),  // ✅ decrypt
-                    AverageRating = Math.Round(i.Ratings.Average(r => r.Score), 1),
+                    Title = _encryption.Decrypt(i.EncryptedTitle),
+                    AverageRating = Math.Round(
+                        i.Ratings.Average(r => r.Score), 1),
                     RatingCount = i.Ratings.Count,
                     CreatedAt = i.CreatedAt
                 })
@@ -93,7 +105,7 @@ namespace BlindIdea.Application.Services.Implementation.Dashboards
                 .Select(i => new RecentIdeaDto
                 {
                     Id = i.Id,
-                    Title = _encryption.Decrypt(i.EncryptedTitle), 
+                    Title = _encryption.Decrypt(i.EncryptedTitle),
                     AverageRating = i.Ratings.Any()
                         ? Math.Round(i.Ratings.Average(r => r.Score), 1)
                         : 0,

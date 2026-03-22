@@ -7,10 +7,13 @@ interface AuthState {
   email: string | null;
   role: string | null;
   isAuthenticated: boolean;
+  teamId: string | null;
+  hasTeam: boolean;
 
   login: (accessToken: string, refreshToken: string) => void;
   logout: () => void;
   initialize: () => void;
+  setTeam: (teamId: string | null) => void;
 }
 
 const decodeToken = (token: string) => {
@@ -36,6 +39,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   email: null,
   role: null,
   isAuthenticated: false,
+  teamId: null,
+  hasTeam: false,
 
   login: (accessToken: string, refreshToken: string) => {
     localStorage.setItem('accessToken', accessToken);
@@ -48,6 +53,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('teamId');
     delete api.defaults.headers.common['Authorization'];
     set({
       accessToken: null,
@@ -55,6 +61,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       email: null,
       role: null,
       isAuthenticated: false,
+      teamId: null,
+      hasTeam: false,
     });
   },
 
@@ -63,8 +71,26 @@ export const useAuthStore = create<AuthState>((set) => ({
     const refreshToken = localStorage.getItem('refreshToken');
     if (accessToken && refreshToken) {
       const { email, role } = decodeToken(accessToken);
+      const teamId = localStorage.getItem('teamId');
       api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-      set({ accessToken, refreshToken, email, role, isAuthenticated: true });
+      set({
+        accessToken,
+        refreshToken,
+        email,
+        role,
+        isAuthenticated: true,
+        teamId,
+        hasTeam: !!teamId,
+      });
     }
+  },
+
+  setTeam: (teamId: string | null) => {
+    if (teamId) {
+      localStorage.setItem('teamId', teamId);
+    } else {
+      localStorage.removeItem('teamId');
+    }
+    set({ teamId, hasTeam: !!teamId });
   },
 }));

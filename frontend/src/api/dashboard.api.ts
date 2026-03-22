@@ -1,7 +1,7 @@
 import api from './axios';
-import type { DashboardStats } from '../types/dashboard.types';
+import type { DashboardResponse } from '../types/dashboard.types';
 
 export const dashboardApi = {
-  getStats: () =>
-    api.get<DashboardStats>('/Dashboard'),
+  getDashboard: () =>
+    api.get<DashboardResponse>('/Dashboard'),
 };

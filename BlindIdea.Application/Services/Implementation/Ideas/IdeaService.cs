@@ -1,30 +1,58 @@
-﻿using BlindIdea.Application.Dtos.Ideas;
+﻿using BlindIdea.Application.Common;
+using BlindIdea.Application.Dtos.Ideas;
 using BlindIdea.Application.Services.Abstraction.Ideas;
-using BlindIdea.Domain.Abstraction.Services;
 using BlindIdea.Domain.Abstraction.UnitOfWorks;
 using BlindIdea.Domain.Entities;
+using BlindIdea.Infrastructure.Implementation.Cache;
 using BlindIdea.Infrastructure.Implementation.Encryption;
 using Microsoft.AspNetCore.Identity;
 
 namespace BlindIdea.Application.Services.Implementation.Ideas
 {
-    public class IdeaService:IIdeaService
+    public class IdeaService : IIdeaService
     {
         private readonly IUnitOfWork _uow;
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly IEncryptionService _encryption;
+        private readonly EncryptionService _encryption;
+        private readonly CacheService _cache;
 
         public IdeaService(
-           IUnitOfWork uow,
-           UserManager<ApplicationUser> userManager,
-           IEncryptionService encryption)
+            IUnitOfWork uow,
+            UserManager<ApplicationUser> userManager,
+            EncryptionService encryption,
+            CacheService cache) 
         {
             _uow = uow;
             _userManager = userManager;
             _encryption = encryption;
+            _cache = cache;
         }
 
-        public async Task<IdeaResponseDto> SubmitIdeaAsync(string userId, SubmitIdeaDto dto)
+        public async Task<IEnumerable<IdeaResponseDto>> GetTeamIdeasAsync(
+            string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId)
+                ?? throw new Exception("User not found");
+
+            if (user.TeamId == null)
+                throw new Exception("You must be in a team to view ideas");
+
+            var ideas = await _cache.GetOrSetAsync(
+                CacheKeys.TeamIdeas(user.TeamId),
+                () => _uow.Ideas.GetTeamIdeaAsync(user.TeamId),
+                CacheDurations.Ideas
+            );
+
+            return ideas.Select(idea =>
+            {
+                var myRating = idea.Ratings
+                    .FirstOrDefault(r => r.UserId == userId)?.Score;
+                return MapToDto(idea, myRating);
+            });
+        }
+
+        public async Task<IdeaResponseDto> SubmitIdeaAsync(
+            string userId, SubmitIdeaDto dto)
         {
             var user = await _userManager.FindByIdAsync(userId)
                 ?? throw new Exception("User not found");
@@ -34,8 +62,8 @@ namespace BlindIdea.Application.Services.Implementation.Ideas
 
             var idea = new Idea
             {
-                EncryptedTitle = _encryption.Encrypt(dto.Title),       
-                EncryptedContent = _encryption.Encrypt(dto.Content),   
+                EncryptedTitle = _encryption.Encrypt(dto.Title),
+                EncryptedContent = _encryption.Encrypt(dto.Content),
                 TeamId = user.TeamId,
                 UserId = userId,
                 CreatedAt = DateTime.UtcNow
@@ -44,48 +72,13 @@ namespace BlindIdea.Application.Services.Implementation.Ideas
             await _uow.Ideas.AddAsync(idea);
             await _uow.SaveChangesAsync();
 
+            _cache.RemoveMany(
+                CacheKeys.TeamIdeas(user.TeamId),
+                CacheKeys.Dashboard(user.TeamId),
+                CacheKeys.TopIdeas(user.TeamId)
+            );
+
             return MapToDto(idea, null);
-        }
-
-        public async Task<IEnumerable<IdeaResponseDto>> GetTeamIdeasAsync(string userId)
-        {
-            var user = await _userManager.FindByIdAsync(userId)
-                ?? throw new Exception("User not found");
-
-            if (user.TeamId == null)
-                throw new Exception("You must be in a team to view ideas");
-
-            var ideas = await _uow.Ideas.GetTeamIdeaAsync(user.TeamId);
-
-            return ideas.Select(idea =>
-            {
-                // ✅ Find current user's rating for this idea
-                var myRating = idea.Ratings
-                    .FirstOrDefault(r => r.UserId == userId)?.Score;
-
-                return MapToDto(idea, myRating);
-            });
-        }
-
-        public async Task<IdeaResponseDto> GetIdeaAsync(string userId, string ideaId)
-        {
-            var user = await _userManager.FindByIdAsync(userId)
-                ?? throw new Exception("User not found");
-
-            if (user.TeamId == null)
-                throw new Exception("You must be in a team to view ideas");
-
-            var idea = await _uow.Ideas.GetIdeaWithRatingsAsync(ideaId)
-                ?? throw new Exception("Idea not found");
-
-            // ✅ Make sure idea belongs to user's team
-            if (idea.TeamId != user.TeamId)
-                throw new Exception("Access denied — idea belongs to a different team");
-
-            var myRating = idea.Ratings
-                .FirstOrDefault(r => r.UserId == userId)?.Score;
-
-            return MapToDto(idea, myRating);
         }
 
         public async Task DeleteIdeaAsync(string userId, string ideaId)
@@ -93,15 +86,23 @@ namespace BlindIdea.Application.Services.Implementation.Ideas
             var idea = await _uow.Ideas.GetbyIdAsync(ideaId)
                 ?? throw new Exception("Idea not found");
 
-            // ✅ Only author can delete their own idea
             if (idea.UserId != userId)
                 throw new Exception("You can only delete your own ideas");
 
+            var teamId = idea.TeamId;
+
             _uow.Ideas.Delete(idea);
             await _uow.SaveChangesAsync();
+
+            _cache.RemoveMany(
+                CacheKeys.TeamIdeas(teamId),
+                CacheKeys.Dashboard(teamId),
+                CacheKeys.TopIdeas(teamId)
+            );
         }
 
-        public async Task<IdeaResponseDto> RateIdeaAsync(string userId, string ideaId, RateIdeaDto dto)
+        public async Task<IdeaResponseDto> RateIdeaAsync(
+            string userId, string ideaId, RateIdeaDto dto)
         {
             var user = await _userManager.FindByIdAsync(userId)
                 ?? throw new Exception("User not found");
@@ -112,26 +113,22 @@ namespace BlindIdea.Application.Services.Implementation.Ideas
             var idea = await _uow.Ideas.GetIdeaWithRatingsAsync(ideaId)
                 ?? throw new Exception("Idea not found");
 
-            // ✅ Make sure idea belongs to user's team
             if (idea.TeamId != user.TeamId)
-                throw new Exception("Access denied — idea belongs to a different team");
+                throw new Exception("Access denied");
 
-            // ✅ Cannot rate your own idea
             if (idea.UserId == userId)
                 throw new Exception("You cannot rate your own idea");
 
-            // ✅ Check if already rated
-            var existingRating = await _uow.Ratings.GetUserRatingAsync(userId, ideaId);
+            var existingRating = await _uow.Ratings
+                .GetUserRatingAsync(userId, ideaId);
 
             if (existingRating != null)
             {
-                // ✅ Update existing rating
                 existingRating.Score = dto.Score;
                 _uow.Ratings.Update(existingRating);
             }
             else
             {
-                // ✅ Create new rating
                 var rating = new Rating
                 {
                     Score = dto.Score,
@@ -143,9 +140,13 @@ namespace BlindIdea.Application.Services.Implementation.Ideas
 
             await _uow.SaveChangesAsync();
 
-            // ✅ Reload idea with updated ratings
-            idea = await _uow.Ideas.GetIdeaWithRatingsAsync(ideaId)!;
+            _cache.RemoveMany(
+                CacheKeys.Dashboard(user.TeamId),
+                CacheKeys.TopIdeas(user.TeamId),
+                CacheKeys.TeamIdeas(user.TeamId)
+            );
 
+            idea = await _uow.Ideas.GetIdeaWithRatingsAsync(ideaId)!;
             return MapToDto(idea!, dto.Score);
         }
 
@@ -154,23 +155,54 @@ namespace BlindIdea.Application.Services.Implementation.Ideas
             var rating = await _uow.Ratings.GetUserRatingAsync(userId, ideaId)
                 ?? throw new Exception("Rating not found");
 
+            var idea = await _uow.Ideas.GetbyIdAsync(ideaId);
+            var teamId = idea?.TeamId;
+
             _uow.Ratings.Delete(rating);
             await _uow.SaveChangesAsync();
+
+            if (teamId != null)
+            {
+                _cache.RemoveMany(
+                    CacheKeys.Dashboard(teamId),
+                    CacheKeys.TopIdeas(teamId),
+                    CacheKeys.TeamIdeas(teamId)
+                );
+            }
+        }
+
+        public async Task<IdeaResponseDto> GetIdeaAsync(
+            string userId, string ideaId)
+        {
+            var user = await _userManager.FindByIdAsync(userId)
+                ?? throw new Exception("User not found");
+
+            if (user.TeamId == null)
+                throw new Exception("You must be in a team to view ideas");
+
+            var idea = await _uow.Ideas.GetIdeaWithRatingsAsync(ideaId)
+                ?? throw new Exception("Idea not found");
+
+            if (idea.TeamId != user.TeamId)
+                throw new Exception("Access denied");
+
+            var myRating = idea.Ratings
+                .FirstOrDefault(r => r.UserId == userId)?.Score;
+
+            return MapToDto(idea, myRating);
         }
 
         private IdeaResponseDto MapToDto(Idea idea, int? myRating) => new()
         {
             Id = idea.Id,
-            Title = _encryption.Decrypt(idea.EncryptedTitle),       
-            Content = _encryption.Decrypt(idea.EncryptedContent),   
+            Title = _encryption.Decrypt(idea.EncryptedTitle),
+            Content = _encryption.Decrypt(idea.EncryptedContent),
             CreatedAt = idea.CreatedAt,
             AverageRating = idea.Ratings.Any()
-            ? Math.Round(idea.Ratings.Average(r => r.Score), 1)
-            : 0,
+                ? Math.Round(idea.Ratings.Average(r => r.Score), 1)
+                : 0,
             RatingCount = idea.Ratings.Count,
             MyRating = myRating
         };
-
-
     }
 }

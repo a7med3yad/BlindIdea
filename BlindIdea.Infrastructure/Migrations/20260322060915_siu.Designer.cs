@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BlindIdea.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260321100239_siu")]
+    [Migration("20260322060915_siu")]
     partial class siu
     {
         /// <inheritdoc />

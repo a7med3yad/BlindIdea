@@ -13,14 +13,15 @@ import { useAuthStore } from '../store/auth.store';
 
 export default function TeamPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const { data: team, isLoading: isLoadingTeam, isError } = useMyTeam();
+  const hasTeam = useAuthStore((s) => s.hasTeam);
+  const { data: team, isLoading: isLoadingTeam } = useMyTeam();
   const { data: members, isLoading: isLoadingMembers } = useTeamMembers();
   const { mutate: leaveTeam, isPending: isLeaving } = useLeaveTeam();
   const { mutate: deleteTeam, isPending: isDeleting } = useDeleteTeam();
   const role = useAuthStore((s) => s.role);
   const isAdmin = role === 'Admin';
 
-  if (isLoadingTeam) {
+  if (isLoadingTeam && hasTeam) {
     return (
       <div className="min-h-screen p-8">
         <div className="max-w-4xl mx-auto">
@@ -33,7 +34,7 @@ export default function TeamPage() {
     );
   }
 
-  if (isError || !team) {
+  if (!hasTeam || !team) {
     return (
       <div className="min-h-screen p-8">
         <div className="max-w-4xl mx-auto">
