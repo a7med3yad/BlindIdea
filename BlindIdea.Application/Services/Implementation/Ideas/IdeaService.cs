@@ -1,6 +1,7 @@
 ﻿using BlindIdea.Application.Common;
 using BlindIdea.Application.Dtos.Ideas;
 using BlindIdea.Application.Services.Abstraction.Ideas;
+using BlindIdea.Domain.Abstraction.Services;
 using BlindIdea.Domain.Abstraction.UnitOfWorks;
 using BlindIdea.Domain.Entities;
 using BlindIdea.Infrastructure.Implementation.Cache;
@@ -13,14 +14,14 @@ namespace BlindIdea.Application.Services.Implementation.Ideas
     {
         private readonly IUnitOfWork _uow;
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly EncryptionService _encryption;
-        private readonly CacheService _cache;
+        private readonly IEncryptionService _encryption;
+        private readonly ICacheService _cache;
 
         public IdeaService(
             IUnitOfWork uow,
             UserManager<ApplicationUser> userManager,
-            EncryptionService encryption,
-            CacheService cache) 
+            IEncryptionService encryption,
+            ICacheService cache) 
         {
             _uow = uow;
             _userManager = userManager;

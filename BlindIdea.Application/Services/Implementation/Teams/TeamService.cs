@@ -1,6 +1,7 @@
 ﻿using BlindIdea.Application.Common;
 using BlindIdea.Application.Dtos.Teams;
 using BlindIdea.Application.Services.Abstraction.Teams;
+using BlindIdea.Domain.Abstraction.Services;
 using BlindIdea.Domain.Abstraction.UnitOfWorks;
 using BlindIdea.Domain.Entities;
 using BlindIdea.Infrastructure.Implementation.Cache;
@@ -10,12 +11,12 @@ public class TeamService : ITeamService
 {
     private readonly IUnitOfWork _uow;
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly CacheService _cache; 
+    private readonly ICacheService _cache; 
 
     public TeamService(
         IUnitOfWork uow,
         UserManager<ApplicationUser> userManager,
-        CacheService cache) 
+        ICacheService cache) 
     {
         _uow = uow;
         _userManager = userManager;

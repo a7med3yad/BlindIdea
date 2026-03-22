@@ -1,6 +1,5 @@
 ﻿using BlindIdea.Application.Dtos.Teams;
 using BlindIdea.Application.Services.Abstraction.Teams;
-using BlindIdea.Application.Services.Implementation.Teams;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
