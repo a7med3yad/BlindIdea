@@ -8,7 +8,10 @@
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public string AdminId { get; set; } = string.Empty;
         public ApplicationUser Admin { get; set; } = null!;
-        public ICollection<ApplicationUser> Members { get; set; } = new List<ApplicationUser>();
+        public ICollection<UserTeam> UserTeams { get; set; }
+           = new List<UserTeam>();
+        public IEnumerable<ApplicationUser> Members
+          => UserTeams.Select(ut => ut.User);
         public ICollection<Idea> Ideas { get; set; } = new List<Idea>();
     }
 }

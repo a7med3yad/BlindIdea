@@ -13,9 +13,25 @@ namespace BlindIdea.Infrastructure.Persistence
         public DbSet<Team> Teams { get; set; }
         public DbSet<Idea> Ideas { get; set; }
         public DbSet<Rating> Ratings { get; set; }
+        public DbSet<UserTeam> UserTeams { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+
+            builder.Entity<UserTeam>(entity =>
+            {
+                entity.HasKey(ut => new { ut.UserId, ut.TeamId });
+
+                entity.HasOne(ut => ut.User)
+                      .WithMany(u => u.UserTeams)
+                      .HasForeignKey(ut => ut.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(ut => ut.Team)
+                      .WithMany(t => t.UserTeams)
+                      .HasForeignKey(ut => ut.TeamId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
 
             builder.Entity<RefreshToken>(entity =>
             {
@@ -30,18 +46,10 @@ namespace BlindIdea.Infrastructure.Persistence
             {
                 entity.HasKey(t => t.Id);
 
-                entity.HasOne(t=>t.Admin)
+                entity.HasOne(t => t.Admin)
                       .WithMany()
-                      .HasForeignKey(t=>t.AdminId)
+                      .HasForeignKey(t => t.AdminId)
                       .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasMany(t=>t.Members)
-                      .WithOne(u=>u.Team)
-                      .HasForeignKey(u=>u.TeamId)
-                      .OnDelete(DeleteBehavior.SetNull);
-
-                entity.HasIndex(t => t.InviteCode)
-                      .IsUnique();
             });
 
             builder.Entity<Idea>(entity =>

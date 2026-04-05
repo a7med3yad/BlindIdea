@@ -102,6 +102,7 @@ namespace BlindIdea.Infrastructure.Migrations
                     OtpExpiration = table.Column<DateTime>(type: "datetime2", nullable: true),
                     OtpRequestCount = table.Column<int>(type: "int", nullable: true),
                     OtpRequestWindowStart = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ActiveTeamId = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     TeamId = table.Column<string>(type: "nvarchar(450)", nullable: true),
                     UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
@@ -172,7 +173,7 @@ namespace BlindIdea.Infrastructure.Migrations
                 {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    InviteCode = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    InviteCode = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     AdminId = table.Column<string>(type: "nvarchar(450)", nullable: false)
                 },
@@ -209,6 +210,33 @@ namespace BlindIdea.Infrastructure.Migrations
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Ideas_Teams_TeamId",
+                        column: x => x.TeamId,
+                        principalTable: "Teams",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserTeams",
+                columns: table => new
+                {
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    TeamId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    IsAdmin = table.Column<bool>(type: "bit", nullable: false),
+                    JoinedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserTeams", x => new { x.UserId, x.TeamId });
+                    table.ForeignKey(
+                        name: "FK_UserTeams_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_UserTeams_Teams_TeamId",
                         column: x => x.TeamId,
                         principalTable: "Teams",
                         principalColumn: "Id",
@@ -317,10 +345,9 @@ namespace BlindIdea.Infrastructure.Migrations
                 column: "AdminId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Teams_InviteCode",
-                table: "Teams",
-                column: "InviteCode",
-                unique: true);
+                name: "IX_UserTeams_TeamId",
+                table: "UserTeams",
+                column: "TeamId");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_AspNetUserClaims_AspNetUsers_UserId",
@@ -351,8 +378,7 @@ namespace BlindIdea.Infrastructure.Migrations
                 table: "AspNetUsers",
                 column: "TeamId",
                 principalTable: "Teams",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.SetNull);
+                principalColumn: "Id");
         }
 
         /// <inheritdoc />
@@ -382,6 +408,9 @@ namespace BlindIdea.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "RefreshTokens");
+
+            migrationBuilder.DropTable(
+                name: "UserTeams");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");

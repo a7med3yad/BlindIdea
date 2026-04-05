@@ -30,6 +30,9 @@ namespace BlindIdea.Infrastructure.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
 
+                    b.Property<string>("ActiveTeamId")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
@@ -209,7 +212,7 @@ namespace BlindIdea.Infrastructure.Migrations
 
                     b.Property<string>("InviteCode")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -219,10 +222,31 @@ namespace BlindIdea.Infrastructure.Migrations
 
                     b.HasIndex("AdminId");
 
-                    b.HasIndex("InviteCode")
-                        .IsUnique();
-
                     b.ToTable("Teams");
+                });
+
+            modelBuilder.Entity("BlindIdea.Domain.Entities.UserTeam", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("TeamId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsAdmin")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("JoinedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("UserId", "TeamId");
+
+                    b.HasIndex("TeamId");
+
+                    b.ToTable("UserTeams");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -360,12 +384,9 @@ namespace BlindIdea.Infrastructure.Migrations
 
             modelBuilder.Entity("BlindIdea.Domain.Entities.ApplicationUser", b =>
                 {
-                    b.HasOne("BlindIdea.Domain.Entities.Team", "Team")
+                    b.HasOne("BlindIdea.Domain.Entities.Team", null)
                         .WithMany("Members")
-                        .HasForeignKey("TeamId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Team");
+                        .HasForeignKey("TeamId");
                 });
 
             modelBuilder.Entity("BlindIdea.Domain.Entities.Idea", b =>
@@ -428,6 +449,25 @@ namespace BlindIdea.Infrastructure.Migrations
                     b.Navigation("Admin");
                 });
 
+            modelBuilder.Entity("BlindIdea.Domain.Entities.UserTeam", b =>
+                {
+                    b.HasOne("BlindIdea.Domain.Entities.Team", "Team")
+                        .WithMany("UserTeams")
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BlindIdea.Domain.Entities.ApplicationUser", "User")
+                        .WithMany("UserTeams")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Team");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -479,6 +519,11 @@ namespace BlindIdea.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("BlindIdea.Domain.Entities.ApplicationUser", b =>
+                {
+                    b.Navigation("UserTeams");
+                });
+
             modelBuilder.Entity("BlindIdea.Domain.Entities.Idea", b =>
                 {
                     b.Navigation("Ratings");
@@ -489,6 +534,8 @@ namespace BlindIdea.Infrastructure.Migrations
                     b.Navigation("Ideas");
 
                     b.Navigation("Members");
+
+                    b.Navigation("UserTeams");
                 });
 #pragma warning restore 612, 618
         }
