@@ -13,12 +13,14 @@ namespace BlindIdea.Infrastructure.Implementation.UnitOfWorks
         public IIdeaRepository Ideas { get; }
         public IRatingRepository Ratings { get; }
 
+        public IUserTeamRepository UserTeams { get; }
         public UnitOfWork(AppDbContext context)
         {
             _context = context;
             Teams = new TeamRepository(context);
             Ideas = new IdeaRepository(context);
             Ratings = new RatingRepository(context);
+            UserTeams = new UserTeamRepository(context);
         }
 
         public async Task<int> SaveChangesAsync()

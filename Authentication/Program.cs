@@ -5,6 +5,7 @@ using BlindIdea.Application.Services.Abstraction.Ideas;
 using BlindIdea.Application.Services.Abstraction.Teams;
 using BlindIdea.Application.Services.Implementation.Dashboards;
 using BlindIdea.Application.Services.Implementation.Ideas;
+using BlindIdea.Application.Services.Implementation.Teams;
 using BlindIdea.Domain.Abstraction.Services;
 using BlindIdea.Domain.Abstraction.UnitOfWorks;
 using BlindIdea.Domain.Entities;
@@ -119,7 +120,10 @@ namespace BlindIdea.API
                         .WithOrigins(
                             "http://localhost:3000",    
                             "http://localhost:5173",    
-                            "https://yourdomain.com"    
+                            "https://blindidea.duckdns.org",
+                            "http://blindidea.duckdns.org"
+
+
                         )
                         .AllowAnyHeader()
                         .AllowAnyMethod()

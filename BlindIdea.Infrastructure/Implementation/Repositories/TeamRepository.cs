@@ -27,5 +27,25 @@ namespace BlindIdea.Infrastructure.Implementation.Repositories
 
         public async Task<bool> InviteCodeExistsAsync(string inviteCode)
             => await _context.Teams.AnyAsync(t => t.InviteCode == inviteCode);
+
+        public async Task<IEnumerable<Team>> GetUserTeamsAsync(string userId)
+            => await _context.UserTeams
+            .AsNoTracking()
+            .Where(ut => ut.UserId == userId)
+            .Include(ut => ut.Team)
+                .ThenInclude(t => t.UserTeams)
+            .Select(ut => ut.Team)
+            .ToListAsync();
+
+        public async Task<UserTeam?> GetUserTeamAsync(string userId, string teamId)
+            => await _context.UserTeams
+                .FirstOrDefaultAsync(ut =>
+                    ut.UserId == userId && ut.TeamId == teamId);
+
+        public async Task<bool> IsUserInTeamAsync(string userId, string teamId)
+            => await _context.UserTeams
+                .AnyAsync(ut => ut.UserId == userId && ut.TeamId == teamId);
+
+       
     }
 }

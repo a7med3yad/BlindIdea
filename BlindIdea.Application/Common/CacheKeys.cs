@@ -10,6 +10,10 @@
         public static string TeamIdeas(string teamId)
             => $"ideas:{teamId}";
 
+        // Ideas
+        public static string UserTeams(string teamId)
+            => $"ideas:{teamId}";
+
         // Team
         public static string Team(string teamId)
             => $"team:{teamId}";

@@ -7,7 +7,9 @@ namespace BlindIdea.Domain.Entities
         public DateTime? OtpExpiration { get; set; }
         public int ?OtpRequestCount { get; set; }
         public DateTime? OtpRequestWindowStart { get; set; }
-        public string? TeamId { get; set; }
-        public Team? Team { get; set; }
-    }
+        public ICollection<UserTeam> UserTeams { get; set; }
+            = new List<UserTeam>();
+        public string? ActiveTeamId { get; set; }
+
+    }   
 }

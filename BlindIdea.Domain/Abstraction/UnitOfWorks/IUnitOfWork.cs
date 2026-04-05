@@ -7,6 +7,7 @@ namespace BlindIdea.Domain.Abstraction.UnitOfWorks
         ITeamRepository Teams { get; }
         IIdeaRepository Ideas { get; }
         IRatingRepository Ratings { get; }
+        IUserTeamRepository UserTeams { get; }
         Task<int> SaveChangesAsync();
     }
 }

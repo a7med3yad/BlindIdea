@@ -15,13 +15,13 @@ namespace BlindIdea.Application.Services.Implementation.Dashboards
         private readonly IUnitOfWork _uow;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IEncryptionService _encryption;
-        private readonly ICacheService _cache; 
+        private readonly ICacheService _cache;
 
         public DashboardService(
             IUnitOfWork uow,
             UserManager<ApplicationUser> userManager,
             IEncryptionService encryption,
-            ICacheService cache) 
+            ICacheService cache)
         {
             _uow = uow;
             _userManager = userManager;
@@ -34,12 +34,14 @@ namespace BlindIdea.Application.Services.Implementation.Dashboards
             var user = await _userManager.FindByIdAsync(userId)
                 ?? throw new Exception("User not found");
 
-            if (user.TeamId == null)
+            if (string.IsNullOrEmpty(user.ActiveTeamId))
                 throw new Exception("You must be in a team to view dashboard");
 
+            var activeTeamId = user.ActiveTeamId;
+
             return await _cache.GetOrSetAsync(
-                CacheKeys.Dashboard(user.TeamId),
-                () => BuildDashboardAsync(user.TeamId, userId),
+                CacheKeys.Dashboard(activeTeamId),
+                () => BuildDashboardAsync(activeTeamId, userId),
                 CacheDurations.Dashboard
             );
         }
@@ -65,7 +67,7 @@ namespace BlindIdea.Application.Services.Implementation.Dashboards
         private TeamSummaryDto GetTeamSummary(Team team) => new()
         {
             TeamName = team.Name,
-            MemberCount = team.Members.Count,
+            MemberCount = team.UserTeams.Count,        // Updated for many-to-many
             CreatedAt = team.CreatedAt
         };
 
@@ -77,8 +79,8 @@ namespace BlindIdea.Application.Services.Implementation.Dashboards
                 TotalIdeas = ideas.Count,
                 TotalRatings = allRatings.Count,
                 OverallAverageRating = allRatings.Any()
-                ? Math.Round(allRatings.Average(r => r.Score), 1)
-                : 0,
+                    ? Math.Round(allRatings.Average(r => r.Score), 1)
+                    : 0,
                 IdeasSubmittedByMe = ideas.Count(i => i.UserId == userId),
                 IdeasRatedByMe = allRatings.Count(r => r.UserId == userId)
             };
@@ -92,8 +94,7 @@ namespace BlindIdea.Application.Services.Implementation.Dashboards
                 {
                     Id = i.Id,
                     Title = _encryption.Decrypt(i.EncryptedTitle),
-                    AverageRating = Math.Round(
-                        i.Ratings.Average(r => r.Score), 1),
+                    AverageRating = Math.Round(i.Ratings.Average(r => r.Score), 1),
                     RatingCount = i.Ratings.Count,
                     CreatedAt = i.CreatedAt
                 })

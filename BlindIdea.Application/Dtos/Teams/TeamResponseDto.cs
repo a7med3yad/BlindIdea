@@ -8,5 +8,8 @@
         public string AdminId { get; set; } = string.Empty;
         public int MemberCount { get; set; }
         public DateTime CreatedAt { get; set; }
+        public bool IsAdmin { get; set; }      
+        public bool IsActive { get; set; }    
+        public DateTime JoinedAt { get; set; } 
     }
 }
