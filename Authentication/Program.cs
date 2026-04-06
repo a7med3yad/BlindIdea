@@ -122,7 +122,8 @@ namespace BlindIdea.API
                             "http://localhost:5173",
                             "http://localhost:3001",    
                             "https://blindidea.duckdns.org",
-                            "http://blindidea.duckdns.org"
+                            "http://blindidea.duckdns.org",
+                            "http://blindidea-frontend-557643339293.s3-website-us-east-1.amazonaws.com"
 
 
                         )
