@@ -1,4 +1,6 @@
-﻿namespace BlindIdea.Domain.Entities
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace BlindIdea.Domain.Entities
 {
     public class Team
     {
@@ -10,6 +12,7 @@
         public ApplicationUser Admin { get; set; } = null!;
         public ICollection<UserTeam> UserTeams { get; set; }
            = new List<UserTeam>();
+        [NotMapped]
         public IEnumerable<ApplicationUser> Members
           => UserTeams.Select(ut => ut.User);
         public ICollection<Idea> Ideas { get; set; } = new List<Idea>();

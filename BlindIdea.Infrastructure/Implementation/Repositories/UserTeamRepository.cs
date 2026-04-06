@@ -1,4 +1,4 @@
-﻿using BlindIdea.Domain.Abstraction.Repositories;
+using BlindIdea.Domain.Abstraction.Repositories;
 using BlindIdea.Domain.Entities;
 using BlindIdea.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -22,8 +22,7 @@ namespace BlindIdea.Infrastructure.Implementation.Repositories
 
         public async Task<IEnumerable<UserTeam>> GetUserTeamsWithTeamsAsync(string userId)
             => await _dbSet
-                .Include(ut => ut.Team)
-                .Where(ut => ut.UserId == userId)
+                .Include(ut => ut.Team).ThenInclude(t => t.UserTeams).Where(ut => ut.UserId == userId)
                 .ToListAsync();
 
         public async Task<IEnumerable<UserTeam>> GetTeamMembersAsync(string teamId)
@@ -33,3 +32,4 @@ namespace BlindIdea.Infrastructure.Implementation.Repositories
                 .ToListAsync();
     }
 }
+

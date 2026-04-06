@@ -1,4 +1,4 @@
-﻿using BlindIdea.Application.Implementation.Auth;
+using BlindIdea.Application.Implementation.Auth;
 using BlindIdea.Application.Services.Abstraction.Auth;
 using BlindIdea.Application.Services.Abstraction.Dashboards;
 using BlindIdea.Application.Services.Abstraction.Ideas;
@@ -119,7 +119,8 @@ namespace BlindIdea.API
                     policy
                         .WithOrigins(
                             "http://localhost:3000",    
-                            "http://localhost:5173",    
+                            "http://localhost:5173",
+                            "http://localhost:3001",    
                             "https://blindidea.duckdns.org",
                             "http://blindidea.duckdns.org"
 

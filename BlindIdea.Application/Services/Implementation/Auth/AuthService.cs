@@ -100,7 +100,8 @@ namespace BlindIdea.Application.Implementation.Auth
 
             if (!await _userManager.CheckPasswordAsync(user, dto.Password))
                 throw new Exception("Invalid password");
-
+            if(user.IsVerified == false)
+                throw new Exception("Email not verified. Please verify your email before logging in.");
             return new AuthResponseDto
             {
                 AccessToken = await _tokenService.CreateAccessToken(user),

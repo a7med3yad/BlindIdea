@@ -1,4 +1,4 @@
-﻿using BlindIdea.Domain.Abstraction.Repositories;
+using BlindIdea.Domain.Abstraction.Repositories;
 using BlindIdea.Domain.Entities;
 using BlindIdea.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -11,13 +11,11 @@ namespace BlindIdea.Infrastructure.Implementation.Repositories
 
         public async Task<Team?> GetByInviteCodeAsync(string inviteCode)
             => await _context.Teams
-             .Include(t => t.Members)
-             .FirstOrDefaultAsync(t=>t.InviteCode == inviteCode);
+             .Include(t => t.UserTeams).ThenInclude(ut => ut.User).FirstOrDefaultAsync(t => t.InviteCode == inviteCode);
 
         public async Task<Team?> GetTeamWithMembersAsync(string teamId)
             => await _context.Teams
-             .Include(t => t.Members)
-             .FirstOrDefaultAsync(t => t.Id == teamId);
+             .Include(t => t.UserTeams).ThenInclude(ut => ut.User).FirstOrDefaultAsync(t => t.Id == teamId);
 
         public async Task<Team?> GetTeamWithIdeaAsync(string teamId)
             => await _context.Teams
@@ -49,3 +47,4 @@ namespace BlindIdea.Infrastructure.Implementation.Repositories
        
     }
 }
+

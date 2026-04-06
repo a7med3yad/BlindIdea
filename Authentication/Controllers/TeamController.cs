@@ -1,380 +1,148 @@
-﻿using BlindIdea.Application.Common;
 using BlindIdea.Application.Dtos.Teams;
 using BlindIdea.Application.Services.Abstraction.Teams;
-using BlindIdea.Domain.Abstraction.Services;
-using BlindIdea.Domain.Abstraction.UnitOfWorks;
-using BlindIdea.Domain.Entities;
-using BlindIdea.Infrastructure.Implementation.Cache;
-using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
-namespace BlindIdea.Application.Services.Implementation.Teams
+namespace BlindIdea.API.Controllers
 {
-    public class TeamService : ITeamService
+    [Authorize]
+    [ApiController]
+    [Route("api/[controller]")]
+    public class TeamController : ControllerBase
     {
-        private readonly IUnitOfWork _uow;
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly ICacheService _cache;
+        private readonly ITeamService _teamService;
 
-        public TeamService(
-            IUnitOfWork uow,
-            UserManager<ApplicationUser> userManager,
-            ICacheService cache)
+        public TeamController(ITeamService teamService)
         {
-            _uow = uow;
-            _userManager = userManager;
-            _cache = cache;
+            _teamService = teamService;
         }
 
-        #region === TEAM LIST & ACTIVE TEAM ===
+        private string GetUserId() =>
+            User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
 
-        public async Task<IEnumerable<TeamResponseDto>> GetMyTeamsAsync(string userId)
+        // -- Multi-team endpoints ----------------------------
+
+        [HttpGet("my-teams")]
+        public async Task<IActionResult> GetMyTeams()
         {
-            var userTeams = await _uow.UserTeams.GetUserTeamsWithTeamsAsync(userId);
-            return userTeams.Select(ut => MapToDto(ut.Team, ut));
-        }
-
-        public async Task<TeamResponseDto> GetActiveTeamAsync(string userId)
-        {
-            var user = await _userManager.FindByIdAsync(userId)
-                ?? throw new Exception("User not found");
-
-            if (string.IsNullOrEmpty(user.ActiveTeamId))
-                throw new Exception("You have no active team");
-
-            var userTeam = await _uow.UserTeams.GetUserTeamAsync(userId, user.ActiveTeamId)
-                ?? throw new Exception("Active team record not found");
-
-            var team = await _uow.Teams.GetTeamWithMembersAsync(user.ActiveTeamId)
-                ?? throw new Exception("Team not found");
-
-            return MapToDto(team, userTeam);
-        }
-
-        #endregion
-
-        #region === CREATE & JOIN ===
-
-        public async Task<TeamResponseDto> CreateTeamAsync(string userId, CreateTeamDto dto)
-        {
-            var user = await _userManager.FindByIdAsync(userId)
-                ?? throw new Exception("User not found");
-
-            var team = new Team
+            try
             {
-                Name = dto.Name,
-                AdminId = userId,
-                InviteCode = await GenerateUniqueInviteCode(),
-                CreatedAt = DateTime.UtcNow
-            };
-
-            await _uow.Teams.AddAsync(team);
-
-            var userTeam = new UserTeam
-            {
-                UserId = userId,
-                TeamId = team.Id,
-                IsAdmin = true,
-                IsActive = true,
-                JoinedAt = DateTime.UtcNow
-            };
-
-            await _uow.UserTeams.AddAsync(userTeam);
-
-            user.ActiveTeamId = team.Id;
-            await _userManager.UpdateAsync(user);
-
-            if (!await _userManager.IsInRoleAsync(user, "Admin"))
-                await _userManager.AddToRoleAsync(user, "Admin");
-
-            await _uow.SaveChangesAsync();
-
-            _cache.Remove(CacheKeys.UserTeams(userId));
-
-            return MapToDto(team, userTeam);
-        }
-
-        public async Task<TeamResponseDto> JoinTeamAsync(string userId, JoinTeamDto dto)
-        {
-            var user = await _userManager.FindByIdAsync(userId)
-                ?? throw new Exception("User not found");
-
-            var team = await _uow.Teams.GetByInviteCodeAsync(dto.InviteCode)
-                ?? throw new Exception("Invalid invite code");
-
-            if (await _uow.UserTeams.IsUserInTeamAsync(userId, team.Id))
-                throw new Exception("You are already a member of this team");
-
-            var userTeam = new UserTeam
-            {
-                UserId = userId,
-                TeamId = team.Id,
-                IsAdmin = false,
-                IsActive = user.ActiveTeamId == null,
-                JoinedAt = DateTime.UtcNow
-            };
-
-            await _uow.UserTeams.AddAsync(userTeam);
-
-            if (user.ActiveTeamId == null)
-            {
-                user.ActiveTeamId = team.Id;
-                await _userManager.UpdateAsync(user);
+                var teams = await _teamService.GetMyTeamsAsync(GetUserId());
+                return Ok(teams);
             }
-
-            await _uow.SaveChangesAsync();
-
-            _cache.Remove(CacheKeys.UserTeams(userId));
-
-            return MapToDto(team, userTeam);
+            catch (Exception ex) { return BadRequest(ex.Message); }
         }
 
-        #endregion
-
-        #region === TEAM ACTIONS (with backward compatibility) ===
-
-        // Overloads without teamId → use Active Team
-        public async Task LeaveTeamAsync(string userId)
+        [HttpGet("active")]
+        public async Task<IActionResult> GetActiveTeam()
         {
-            var user = await _userManager.FindByIdAsync(userId)
-                ?? throw new Exception("User not found");
-
-            if (string.IsNullOrEmpty(user.ActiveTeamId))
-                throw new Exception("You are not in any team");
-
-            await LeaveTeamAsync(userId, user.ActiveTeamId);
-        }
-
-        public async Task LeaveTeamAsync(string userId, string teamId)
-        {
-            var userTeam = await _uow.UserTeams.GetUserTeamAsync(userId, teamId)
-                ?? throw new Exception("You are not in this team");
-
-            var team = await _uow.Teams.GetbyIdAsync(teamId)
-                ?? throw new Exception("Team not found");
-
-            if (team.AdminId == userId)
-                throw new Exception("Admin cannot leave team. Delete or transfer ownership.");
-
-            _uow.UserTeams.Delete(userTeam);
-
-            var user = await _userManager.FindByIdAsync(userId)!;
-
-            if (user.ActiveTeamId == teamId)
+            try
             {
-                var other = (await _uow.UserTeams.GetUserTeamsWithTeamsAsync(userId))
-                    .FirstOrDefault(ut => ut.TeamId != teamId);
-
-                user.ActiveTeamId = other?.TeamId;
-                if (other != null) other.IsActive = true;
+                var team = await _teamService.GetActiveTeamAsync(GetUserId());
+                return Ok(team);
             }
-
-            await _userManager.UpdateAsync(user);
-            await _uow.SaveChangesAsync();
-
-            _cache.Remove(CacheKeys.UserTeams(userId));
+            catch (Exception ex) { return BadRequest(ex.Message); }
         }
 
-        public async Task DeleteTeamAsync(string userId)
+        [HttpPost("switch")]
+        public async Task<IActionResult> SwitchTeam(SwitchTeamDto dto)
         {
-            var user = await _userManager.FindByIdAsync(userId)
-                ?? throw new Exception("User not found");
-
-            if (string.IsNullOrEmpty(user.ActiveTeamId))
-                throw new Exception("You are not in any team");
-
-            await DeleteTeamAsync(userId, user.ActiveTeamId);
-        }
-
-        public async Task DeleteTeamAsync(string userId, string teamId)
-        { /* ... same as before ... */
-            // (Copy the full DeleteTeamAsync with teamId from previous version)
-            var user = await _userManager.FindByIdAsync(userId) ?? throw new Exception("User not found");
-            var team = await _uow.Teams.GetTeamWithMembersAsync(teamId) ?? throw new Exception("Team not found");
-
-            if (team.AdminId != userId)
-                throw new Exception("Only admin can delete the team");
-
-            var teamIdToClear = team.Id;
-            var userTeamsList = team.UserTeams.ToList();
-
-            foreach (var ut in userTeamsList)
+            try
             {
-                if (ut.User.ActiveTeamId == teamIdToClear)
-                    ut.User.ActiveTeamId = null;
-                await _userManager.UpdateAsync(ut.User);
-                _uow.UserTeams.Delete(ut);
+                var team = await _teamService.SwitchTeamAsync(GetUserId(), dto);
+                return Ok(team);
             }
-
-            if (await _userManager.IsInRoleAsync(user, "Admin"))
-                await _userManager.RemoveFromRoleAsync(user, "Admin");
-
-            _uow.Teams.Delete(team);
-            await _uow.SaveChangesAsync();
-
-            _cache.RemoveMany(
-                CacheKeys.Team(teamIdToClear),
-                CacheKeys.TeamMembers(teamIdToClear),
-                CacheKeys.Dashboard(teamIdToClear),
-                CacheKeys.TeamIdeas(teamIdToClear),
-                CacheKeys.TopIdeas(teamIdToClear),
-                CacheKeys.UserTeams(userId)
-            );
+            catch (Exception ex) { return BadRequest(ex.Message); }
         }
 
-        public async Task<string> RegenerateInviteCodeAsync(string userId)
+        // -- Create / Join -----------------------------------
+
+        [HttpPost("create")]
+        public async Task<IActionResult> CreateTeam(CreateTeamDto dto)
         {
-            var user = await _userManager.FindByIdAsync(userId)
-                ?? throw new Exception("User not found");
-
-            if (string.IsNullOrEmpty(user.ActiveTeamId))
-                throw new Exception("You are not in any team");
-
-            return await RegenerateInviteCodeAsync(userId, user.ActiveTeamId);
-        }
-
-        public async Task<string> RegenerateInviteCodeAsync(string userId, string teamId)
-        {
-            var team = await _uow.Teams.GetbyIdAsync(teamId)
-                ?? throw new Exception("Team not found");
-
-            if (team.AdminId != userId)
-                throw new Exception("Only admin can regenerate invite code");
-
-            team.InviteCode = await GenerateUniqueInviteCode();
-            _uow.Teams.Update(team);
-
-            await _uow.SaveChangesAsync();
-            _cache.Remove(CacheKeys.Team(teamId));
-
-            return team.InviteCode;
-        }
-
-        public async Task RemoveMemberAsync(string adminId, string memberId)
-        {
-            var admin = await _userManager.FindByIdAsync(adminId)
-                ?? throw new Exception("Admin not found");
-
-            if (string.IsNullOrEmpty(admin.ActiveTeamId))
-                throw new Exception("You are not in any team");
-
-            await RemoveMemberAsync(adminId, memberId, admin.ActiveTeamId);
-        }
-
-        public async Task RemoveMemberAsync(string adminId, string memberId, string teamId)
-        {
-            var team = await _uow.Teams.GetbyIdAsync(teamId)
-                ?? throw new Exception("Team not found");
-
-            if (team.AdminId != adminId)
-                throw new Exception("Only admin can remove members");
-
-            if (adminId == memberId)
-                throw new Exception("Admin cannot remove themselves");
-
-            var userTeam = await _uow.UserTeams.GetUserTeamAsync(memberId, teamId)
-                ?? throw new Exception("User is not in this team");
-
-            _uow.UserTeams.Delete(userTeam);
-
-            var member = await _userManager.FindByIdAsync(memberId)!;
-            if (member.ActiveTeamId == teamId)
-                member.ActiveTeamId = null;
-
-            await _userManager.UpdateAsync(member);
-            await _uow.SaveChangesAsync();
-
-            _cache.RemoveMany(
-                CacheKeys.Team(teamId),
-                CacheKeys.TeamMembers(teamId),
-                CacheKeys.Dashboard(teamId),
-                CacheKeys.UserTeams(memberId)
-            );
-        }
-
-        #endregion
-
-        #region === MEMBERS & SWITCH ===
-
-        public async Task<List<TeamMemberDto>> GetMembersAsync(string userId)
-        {
-            var user = await _userManager.FindByIdAsync(userId)
-                ?? throw new Exception("User not found");
-
-            if (string.IsNullOrEmpty(user.ActiveTeamId))
-                throw new Exception("You are not in any team");
-
-            var teamId = user.ActiveTeamId;
-
-            return await _cache.GetOrSetAsync(
-                CacheKeys.TeamMembers(teamId),
-                async () =>
-                {
-                    var userTeams = await _uow.UserTeams.GetTeamMembersAsync(teamId);
-                    return userTeams.Select(ut => new TeamMemberDto
-                    {
-                        Id = ut.User.Id,
-                        Email = ut.User.Email!,
-                        IsAdmin = ut.IsAdmin
-                    }).ToList();
-                },
-                CacheDurations.TeamMembers
-            );
-        }
-
-        public async Task<TeamResponseDto> SwitchTeamAsync(string userId, SwitchTeamDto dto)
-        {
-            var user = await _userManager.FindByIdAsync(userId)
-                ?? throw new Exception("User not found");
-
-            if (!await _uow.UserTeams.IsUserInTeamAsync(userId, dto.TeamId))
-                throw new Exception("You are not a member of this team");
-
-            var allUserTeams = await _uow.UserTeams.GetUserTeamsWithTeamsAsync(userId);
-
-            foreach (var ut in allUserTeams)
-                ut.IsActive = false;
-
-            var targetUserTeam = allUserTeams.First(ut => ut.TeamId == dto.TeamId);
-            targetUserTeam.IsActive = true;
-            user.ActiveTeamId = dto.TeamId;
-
-            await _userManager.UpdateAsync(user);
-            await _uow.SaveChangesAsync();
-
-            _cache.Remove(CacheKeys.UserTeams(userId));
-
-            return MapToDto(targetUserTeam.Team, targetUserTeam);
-        }
-
-        #endregion
-
-        #region === HELPERS ===
-
-        private async Task<string> GenerateUniqueInviteCode()
-        {
-            string code;
-            do
+            try
             {
-                code = Guid.NewGuid().ToString("N")[..8].ToUpper();
+                var team = await _teamService.CreateTeamAsync(GetUserId(), dto);
+                return Ok(team);
             }
-            while (await _uow.Teams.InviteCodeExistsAsync(code));
-
-            return code;
+            catch (Exception ex) { return BadRequest(ex.Message); }
         }
 
-        private TeamResponseDto MapToDto(Team team, UserTeam userTeam) => new()
+        [HttpPost("join")]
+        public async Task<IActionResult> JoinTeam(JoinTeamDto dto)
         {
-            Id = team.Id,
-            Name = team.Name,
-            InviteCode = team.InviteCode,
-            AdminId = team.AdminId,
-            MemberCount = team.UserTeams.Count,
-            CreatedAt = team.CreatedAt,
-            IsAdmin = userTeam.IsAdmin,
-            IsActive = userTeam.IsActive,
-            JoinedAt = userTeam.JoinedAt
-        };
+            try
+            {
+                var team = await _teamService.JoinTeamAsync(GetUserId(), dto);
+                return Ok(team);
+            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
 
-        #endregion
+        // -- Members -----------------------------------------
+
+        [HttpGet("members")]
+        public async Task<IActionResult> GetMembers()
+        {
+            try
+            {
+                var members = await _teamService.GetMembersAsync(GetUserId());
+                return Ok(members);
+            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
+
+        // -- Leave -------------------------------------------
+
+        [HttpPost("leave/{teamId}")]
+        public async Task<IActionResult> LeaveTeam(string teamId)
+        {
+            try
+            {
+                await _teamService.LeaveTeamAsync(GetUserId(), teamId);
+                return Ok("Left team successfully");
+            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
+
+        // -- Delete (admin only) -----------------------------
+
+        [HttpDelete("delete/{teamId}")]
+        public async Task<IActionResult> DeleteTeam(string teamId)
+        {
+            try
+            {
+                await _teamService.DeleteTeamAsync(GetUserId(), teamId);
+                return Ok("Team deleted successfully");
+            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
+
+        // -- Regenerate invite -------------------------------
+
+        [HttpPost("regenerate-invite/{teamId}")]
+        public async Task<IActionResult> RegenerateInvite(string teamId)
+        {
+            try
+            {
+                var inviteCode = await _teamService.RegenerateInviteCodeAsync(GetUserId(), teamId);
+                return Ok(new { inviteCode });
+            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
+
+        // -- Remove member -----------------------------------
+
+        [HttpDelete("remove-member/{teamId}/{memberId}")]
+        public async Task<IActionResult> RemoveMember(string teamId, string memberId)
+        {
+            try
+            {
+                await _teamService.RemoveMemberAsync(GetUserId(), memberId, teamId);
+                return Ok("Member removed successfully");
+            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
     }
 }

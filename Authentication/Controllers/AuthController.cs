@@ -196,7 +196,7 @@ namespace Authentication.Controllers
 
                 // Build the frontend callback URL with tokens
                 if (string.IsNullOrEmpty(returnUrl))
-                    returnUrl = "http://localhost:3000/external-callback";
+                    returnUrl = "http://localhost:3001/external-callback";
 
                 var separator = returnUrl.Contains('?') ? '&' : '?';
                 var redirectUrl = $"{returnUrl}{separator}accessToken={Uri.EscapeDataString(response.AccessToken)}&refreshToken={Uri.EscapeDataString(response.RefreshToken)}";

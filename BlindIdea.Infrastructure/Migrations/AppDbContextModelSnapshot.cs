@@ -82,9 +82,6 @@ namespace BlindIdea.Infrastructure.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("TeamId")
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
 
@@ -101,8 +98,6 @@ namespace BlindIdea.Infrastructure.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
-
-                    b.HasIndex("TeamId");
 
                     b.ToTable("AspNetUsers", (string)null);
                 });
@@ -382,13 +377,6 @@ namespace BlindIdea.Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("BlindIdea.Domain.Entities.ApplicationUser", b =>
-                {
-                    b.HasOne("BlindIdea.Domain.Entities.Team", null)
-                        .WithMany("Members")
-                        .HasForeignKey("TeamId");
-                });
-
             modelBuilder.Entity("BlindIdea.Domain.Entities.Idea", b =>
                 {
                     b.HasOne("BlindIdea.Domain.Entities.Team", "Team")
@@ -532,8 +520,6 @@ namespace BlindIdea.Infrastructure.Migrations
             modelBuilder.Entity("BlindIdea.Domain.Entities.Team", b =>
                 {
                     b.Navigation("Ideas");
-
-                    b.Navigation("Members");
 
                     b.Navigation("UserTeams");
                 });

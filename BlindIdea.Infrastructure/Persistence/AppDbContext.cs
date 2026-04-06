@@ -1,4 +1,4 @@
-﻿using BlindIdea.Domain.Entities;
+using BlindIdea.Domain.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 namespace BlindIdea.Infrastructure.Persistence
@@ -45,6 +45,8 @@ namespace BlindIdea.Infrastructure.Persistence
             builder.Entity<Team>(entity =>
             {
                 entity.HasKey(t => t.Id);
+
+                entity.Ignore(t => t.Members);
 
                 entity.HasOne(t => t.Admin)
                       .WithMany()
