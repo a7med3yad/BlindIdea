@@ -17,12 +17,9 @@ using BlindIdea.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using System.Text;
-
-
 
 namespace BlindIdea.API
 {
@@ -62,7 +59,7 @@ namespace BlindIdea.API
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme; 
+                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
             })
             .AddJwtBearer(options =>
             {
@@ -80,7 +77,7 @@ namespace BlindIdea.API
                 options.SignInScheme = IdentityConstants.ExternalScheme;
                 options.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
                 options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
-                options.CallbackPath = "/signin-google"; 
+                options.CallbackPath = "/signin-google";
             })
             .AddGitHub(options =>
             {
@@ -91,8 +88,7 @@ namespace BlindIdea.API
                 options.Scope.Add("user:email");
             });
 
-
-            builder.Services.AddAuthorization(); 
+            builder.Services.AddAuthorization();
 
             // Dependency injection
             builder.Services.AddScoped<ITokenService, TokenService>();
@@ -101,31 +97,29 @@ namespace BlindIdea.API
             builder.Services.AddScoped<IOAuthService, OAuthService>();
             builder.Services.AddScoped<IEncryptionService, EncryptionService>();
 
-
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<ITeamService, TeamService>();
             builder.Services.AddScoped<IIdeaService, IdeaService>();
             builder.Services.AddScoped<IDashboardService, DashboardService>();
             builder.Services.AddMemoryCache();
-            builder.Services.AddScoped<ICacheService,CacheService>();
+            builder.Services.AddScoped<ICacheService, CacheService>();
 
             builder.Services.AddEndpointsApiExplorer();
 
+            // Fixed CORS Configuration
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("BlindIdeaPolicy", policy =>
                 {
                     policy
                         .WithOrigins(
-                            "http://localhost:3000",    
+                            "http://localhost:3000",
                             "http://localhost:5173",
-                            "http://localhost:3001",    
+                            "http://localhost:3001",
                             "https://blindidea.duckdns.org",
                             "http://blindidea.duckdns.org",
                             "http://blindidea-frontend-557643339293.s3-website-us-east-1.amazonaws.com"
-
-
                         )
                         .AllowAnyHeader()
                         .AllowAnyMethod()
@@ -135,17 +129,18 @@ namespace BlindIdea.API
 
             var app = builder.Build();
 
+            // Configure pipeline
             if (app.Environment.IsDevelopment())
             {
                 app.MapOpenApi();
                 app.MapScalarApiReference();
             }
 
-
+            // Create roles
             using (var scope = app.Services.CreateScope())
             {
                 var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-                string [] roles = new[] { "Admin", "User" };
+                string[] roles = new[] { "Admin", "User" };
 
                 foreach (var role in roles)
                 {
@@ -155,15 +150,28 @@ namespace BlindIdea.API
                     }
                 }
             }
+
+            // IMPORTANT: Disable HTTPS redirection in Production (Nginx handles HTTPS)
+            if (!app.Environment.IsProduction())
+            {
+                app.UseHttpsRedirection();
+            }
+
+            // Use CORS - only one policy
             app.UseCors("BlindIdeaPolicy");
 
-
-            app.UseHttpsRedirection();
-
-            app.UseAuthentication(); 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllers();
+
+            // Add health check endpoint for monitoring
+            app.MapGet("/api/health", () => Results.Ok(new 
+            { 
+                status = "Healthy", 
+                timestamp = DateTime.UtcNow,
+                environment = app.Environment.EnvironmentName
+            }));
 
             app.Run();
         }
