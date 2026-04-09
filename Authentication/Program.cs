@@ -14,12 +14,19 @@ using BlindIdea.Infrastructure.Implementation.Cache;
 using BlindIdea.Infrastructure.Implementation.Encryption;
 using BlindIdea.Infrastructure.Implementation.UnitOfWorks;
 using BlindIdea.Infrastructure.Persistence;
+using BlindIdea.API.Health;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.HttpLogging;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
+using System.Net.Mime;
 using System.Text;
+using System.Threading.RateLimiting;
 
 namespace BlindIdea.API
 {
@@ -28,6 +35,14 @@ namespace BlindIdea.API
         public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            builder.Logging.ClearProviders();
+            builder.Logging.AddSimpleConsole(options =>
+            {
+                options.SingleLine = true;
+                options.TimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffZ ";
+                options.UseUtcTimestamp = true;
+            });
 
             builder.Services.AddControllers();
 
@@ -52,8 +67,56 @@ namespace BlindIdea.API
             builder.Services.ConfigureApplicationCookie(options =>
             {
                 options.Cookie.SameSite = SameSiteMode.Lax;
-                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+                    ? CookieSecurePolicy.SameAsRequest
+                    : CookieSecurePolicy.Always;
             });
+
+            builder.Services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+                options.KnownIPNetworks.Clear();
+                options.KnownProxies.Clear();
+            });
+
+            builder.Services.AddHttpLogging(options =>
+            {
+                options.LoggingFields = HttpLoggingFields.RequestMethod
+                                       | HttpLoggingFields.RequestPath
+                                       | HttpLoggingFields.ResponseStatusCode
+                                       | HttpLoggingFields.Duration;
+            });
+
+            builder.Services.AddProblemDetails();
+
+            builder.Services.AddRateLimiter(options =>
+            {
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+                options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+                {
+                    var partitionKey = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+                    return RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey,
+                        factory: _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = 200,
+                            Window = TimeSpan.FromSeconds(10),
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                            QueueLimit = 0
+                        });
+                });
+            });
+
+            builder.Services.AddHealthChecks()
+                .AddCheck<DatabaseHealthCheck>("db");
+
+            var dataProtectionKeysPath = builder.Configuration["DataProtection:KeysPath"];
+            if (!builder.Environment.IsDevelopment() && !string.IsNullOrWhiteSpace(dataProtectionKeysPath))
+            {
+                builder.Services.AddDataProtection()
+                    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath))
+                    .SetApplicationName("BlindIdea");
+            }
 
             builder.Services.AddAuthentication(options =>
             {
@@ -63,7 +126,13 @@ namespace BlindIdea.API
             })
             .AddJwtBearer(options =>
             {
-                var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!);
+                var keyValue = builder.Configuration["Jwt:Key"];
+                if (string.IsNullOrWhiteSpace(keyValue))
+                {
+                    throw new InvalidOperationException("Missing configuration value: Jwt:Key (set via environment variable Jwt__Key in Production).");
+                }
+
+                var key = Encoding.UTF8.GetBytes(keyValue);
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = false,
@@ -82,8 +151,16 @@ namespace BlindIdea.API
             .AddGitHub(options =>
             {
                 options.SignInScheme = IdentityConstants.ExternalScheme;
-                options.ClientId = builder.Configuration["Authentication:GitHub:ClientId"]!;
-                options.ClientSecret = builder.Configuration["Authentication:GitHub:ClientSecret"]!;
+                options.ClientId =
+                    builder.Configuration["Authentication:GitHub:ClientId"]
+                    ?? builder.Configuration["Authentication:Github:ClientId"]
+                    ?? throw new InvalidOperationException("Missing configuration value: Authentication:GitHub:ClientId");
+
+                options.ClientSecret =
+                    builder.Configuration["Authentication:GitHub:ClientSecret"]
+                    ?? builder.Configuration["Authentication:Github:ClientSecret"]
+                    ?? throw new InvalidOperationException("Missing configuration value: Authentication:GitHub:ClientSecret");
+
                 options.CallbackPath = "/signin-github";
                 options.Scope.Add("user:email");
             });
@@ -112,6 +189,17 @@ namespace BlindIdea.API
             {
                 options.AddPolicy("BlindIdeaPolicy", policy =>
                 {
+                    var configuredOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+                    if (configuredOrigins is { Length: > 0 })
+                    {
+                        policy
+                            .WithOrigins(configuredOrigins)
+                            .AllowAnyHeader()
+                            .AllowAnyMethod()
+                            .AllowCredentials();
+                    }
+                    else
+                    {
                     policy
                         .WithOrigins(
                             "http://localhost:3000",
@@ -124,19 +212,55 @@ namespace BlindIdea.API
                         .AllowAnyHeader()
                         .AllowAnyMethod()
                         .AllowCredentials();
+                    }
                 });
             });
 
             var app = builder.Build();
 
+<<<<<<< HEAD
             // Configure pipeline
+=======
+            app.UseForwardedHeaders();
+
+>>>>>>> a218c79 (Enhance production readiness, config, and observability)
             if (app.Environment.IsDevelopment())
             {
                 app.MapOpenApi();
                 app.MapScalarApiReference();
             }
+            else
+            {
+                app.UseHsts();
+                app.UseExceptionHandler(errorApp =>
+                {
+                    errorApp.Run(async context =>
+                    {
+                        var exceptionHandler = context.Features.Get<IExceptionHandlerFeature>();
+                        var problemDetailsService = context.RequestServices.GetRequiredService<IProblemDetailsService>();
+                        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                        context.Response.ContentType = MediaTypeNames.Application.ProblemJson;
+                        await problemDetailsService.WriteAsync(new ProblemDetailsContext
+                        {
+                            HttpContext = context,
+                            Exception = exceptionHandler?.Error,
+                            ProblemDetails =
+                            {
+                                Title = "An unexpected error occurred.",
+                                Status = StatusCodes.Status500InternalServerError
+                            }
+                        });
+                    });
+                });
+            }
 
+<<<<<<< HEAD
             // Create roles
+=======
+            app.UseHttpLogging();
+            app.UseRateLimiter();
+
+>>>>>>> a218c79 (Enhance production readiness, config, and observability)
             using (var scope = app.Services.CreateScope())
             {
                 var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
@@ -165,6 +289,7 @@ namespace BlindIdea.API
 
             app.MapControllers();
 
+<<<<<<< HEAD
             // Add health check endpoint for monitoring
             app.MapGet("/api/health", () => Results.Ok(new 
             { 
@@ -172,6 +297,9 @@ namespace BlindIdea.API
                 timestamp = DateTime.UtcNow,
                 environment = app.Environment.EnvironmentName
             }));
+=======
+            app.MapHealthChecks("/api/health").AllowAnonymous();
+>>>>>>> a218c79 (Enhance production readiness, config, and observability)
 
             app.Run();
         }
