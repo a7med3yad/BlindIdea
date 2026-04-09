@@ -299,7 +299,16 @@ namespace BlindIdea.API
             }));
 =======
             app.MapHealthChecks("/api/health").AllowAnonymous();
+<<<<<<< HEAD
 >>>>>>> a218c79 (Enhance production readiness, config, and observability)
+=======
+            app.MapGet("/api/health", () => Results.Ok(new 
+            { 
+                status = "Healthy", 
+                timestamp = DateTime.UtcNow,
+                environment = app.Environment.EnvironmentName
+            }));
+>>>>>>> 7f86256 (refresh)
 
             app.Run();
         }
