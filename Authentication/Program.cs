@@ -218,12 +218,8 @@ namespace BlindIdea.API
 
             var app = builder.Build();
 
-<<<<<<< HEAD
-            // Configure pipeline
-=======
             app.UseForwardedHeaders();
 
->>>>>>> a218c79 (Enhance production readiness, config, and observability)
             if (app.Environment.IsDevelopment())
             {
                 app.MapOpenApi();
@@ -254,13 +250,9 @@ namespace BlindIdea.API
                 });
             }
 
-<<<<<<< HEAD
-            // Create roles
-=======
             app.UseHttpLogging();
             app.UseRateLimiter();
 
->>>>>>> a218c79 (Enhance production readiness, config, and observability)
             using (var scope = app.Services.CreateScope())
             {
                 var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
@@ -289,7 +281,6 @@ namespace BlindIdea.API
 
             app.MapControllers();
 
-<<<<<<< HEAD
             // Add health check endpoint for monitoring
             app.MapGet("/api/health", () => Results.Ok(new 
             { 
@@ -297,18 +288,13 @@ namespace BlindIdea.API
                 timestamp = DateTime.UtcNow,
                 environment = app.Environment.EnvironmentName
             }));
-=======
             app.MapHealthChecks("/api/health").AllowAnonymous();
-<<<<<<< HEAD
->>>>>>> a218c79 (Enhance production readiness, config, and observability)
-=======
             app.MapGet("/api/health", () => Results.Ok(new 
             { 
                 status = "Healthy", 
                 timestamp = DateTime.UtcNow,
                 environment = app.Environment.EnvironmentName
             }));
->>>>>>> 7f86256 (refresh)
 
             app.Run();
         }
